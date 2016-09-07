@@ -1,0 +1,257 @@
+id: 265 (amazon box)
+header: 
+  seq: 0
+  stamp: 1466536739.356978981
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
+header: 
+  seq: 0
+  stamp: 1466536741.884643782
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
+header: 
+  seq: 0
+  stamp: 1466536744.347698182
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
+header: 
+  seq: 0
+  stamp: 1466536746.998814447
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
+header: 
+  seq: 0
+  stamp: 1466536750.160636242
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
+header: 
+  seq: 0
+  stamp: 1466536755.058069125
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
+header: 
+  seq: 0
+  stamp: 1466536758.285996065
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
+header: 
+  seq: 0
+  stamp: 1466536763.324848915
+  frame_id: /head/kinect2_rgb_optical_frame
+pose: 
+  position: 
+    x: 0.0122108
+    y: 0.0455555
+    z: 0.831281
+  orientation: 
+    x: 0.970411
+    y: 0.013975
+    z: -0.0396695
+    w: -0.23777
+corners2d[]
+  corners2d[0]: 
+    x: 459.5
+    y: 314.5
+    z: 1
+  corners2d[1]: 
+    x: 489.5
+    y: 316.5
+    z: 1
+  corners2d[2]: 
+    x: 490.5
+    y: 289.5
+    z: 1
+  corners2d[3]: 
+    x: 459.5
+    y: 288.5
+    z: 1
+ **************************************************** 
