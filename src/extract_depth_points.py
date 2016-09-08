@@ -15,18 +15,17 @@ def main(args):
 	py = 273.26
 	I = np.array([fx, 0 , px, 0, fy, py, 0, 0, 1]).reshape(3,3)
 	
-	x_start = 459
-	x_end = 490
-	y_start = 288
-	y_end = 314
-	rgb_image = cv2.imread("../data/rawData/rgb.jpg")
-	depth_image = cv2.imread("../data/rawData/depth.jpg", cv2.IMREAD_ANYDEPTH)
+	x_start = 522
+	x_end = 536
+	y_start = 114
+	y_end = 130
+	rgb_image = cv2.imread("../data/rgb_frame.png")
+	depth_image = cv2.imread("../data/depth_frame.png", cv2.IMREAD_ANYDEPTH)
 	april_tag_rgb = rgb_image[y_start:y_end, x_start:x_end]
 	april_tag_depth = depth_image[y_start:y_end, x_start:x_end]
 	# cv2.imshow('april_tag', april_tag_rgb)
 	# cv2.waitKey(0)
 	all_pts = []
-	print april_tag_depth
 	for i in range(x_start, x_end):
 		for j in range(y_start, y_end):
 			depth = depth_image[i,j] / 1000.0
@@ -37,7 +36,7 @@ def main(args):
 	sample_cov = 0.05
 	samples = np.array(all_pts)
 	print "samples Depth"
-	print samples
+	print samples[0:5, :]
 	cov = np.asarray([sample_cov] * samples.shape[0])
 	depth_plane_est = bayesplane.fit_plane_bayes(samples, cov)
 
@@ -85,7 +84,7 @@ def main(args):
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
 	print "Sample_points RGB"
-	print  sample_points[1:3, :]
+	print  sample_points[0:3, :]
 	rgb_plane_est = bayesplane.fit_plane_bayes(sample_points, cov)
 
 if __name__ == '__main__':
