@@ -69,12 +69,15 @@ class BayesPlane(object):
         @param ax - axis handle, defaults to creating a new one
         @return axis handle
         '''
+
+        import matplotlib.pyplot as plt
         myax = self.mean.plot(center=center,
                               scale=scale, color=color, alpha=1.0, ax=ax)
         psample = self.sample(M)
         for ps in psample:
             ps.plot(center=center,
                     scale=scale, color=color, alpha=0.2, ax=myax)
+        plt.show()
         return myax
 
 

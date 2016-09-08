@@ -161,5 +161,5 @@ class Plane(object):
             tri.set_edgecolor('k')
             tri.set_alpha(alpha)
             ax.add_collection3d(tri)
-        plt.show()
+        plt.draw()
         return ax

@@ -5,49 +5,7 @@ import numpy as np
 import bayesplane
 import plane
 import transformation as tf
-
-def plot(plane, center=None, scale=1.0, color='r', alpha=1.0, ax=None):
-    '''
-    2D or 3D render of plane box centered and scaled
-    @param center - center of plane box, (2,) or (3,) vector
-                    defaults to origin
-    @param scale - scale of box, defaults to 1.0
-    @param color - color of box, defaults to red
-    @param alpha - alpha of box, defaults to 1.0
-    @param ax - axis handle, defaults to creating a new one
-    @return axis handle
-    '''
-    import matplotlib.pyplot as plt
-
-    numd = plane.dim()
-    if not ((numd == 2) or (numd == 3)):
-        raise TypeError('Plotting restricted to 2D or 3D')
-    if numd == 3:
-        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-        from mpl_toolkits.mplot3d import Axes3D
-    if ax is None:
-        fig = plt.figure(figsize=(10, 10))
-        if numd == 2:
-            ax = fig.gca()
-        if numd == 3:
-            ax = fig.gca(projection='3d')
-            ax.set_zlabel('Z')
-        plt.xlabel('X')
-        plt.ylabel('Y')
-    if center is None:
-        center = np.zeros(numd)
-    box = plane.box(scale, center)
-    if numd == 2:
-        ax.plot(box[:, 0], box[:, 1], color, alpha=alpha)
-    if numd == 3:
-        tri = Poly3DCollection([box])
-        tri.set_color(color)
-        tri.set_edgecolor('k')
-        tri.set_alpha(alpha)
-        ax.add_collection3d(tri)
-    plt.show()
-    return ax
-
+import matplotlib.pyplot as plt
 
 def main(args):
 	# Declare Test Variables
@@ -76,11 +34,12 @@ def main(args):
 				x = (i - px) * depth / fx
 				y = (j - py) * depth / fy
 				all_pts.append([x,y,depth])
-	sample_cov = 0.05
+	sample_cov = 0.01
 	samples = np.array(all_pts)
 	print "Sample points from the depth sensor"
 	print samples[0:5, :]
 	cov = np.asarray([sample_cov] * samples.shape[0])
+	print cov
 	depth_plane_est = bayesplane.fit_plane_bayes(samples, cov)
 
 	# For now hard code the test data x y values
@@ -105,10 +64,10 @@ def main(args):
 	coord = np.dot(C, origin)
 	x_coord = coord[0] / coord[2]
 	y_coord = coord[1] / coord[2]
-	cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 3, (255, 0,0))
-	cv2.imshow('april_tag', rgb_image)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
+	# cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 3, (255, 0,0))
+	# cv2.imshow('april_tag', rgb_image)
+	# cv2.waitKey(5)
+	# cv2.destroyAllWindows()
 
 	x_samples = np.linspace(-0.01, 0.01, num = 10)
 	y_samples = np.linspace(-0.01, 0.01, num = 10)
@@ -123,13 +82,18 @@ def main(args):
 		x_coord = sample_points_viz[0, i] / sample_points_viz[2, i]
 		y_coord = sample_points_viz[1, i] / sample_points_viz[2, i]
 		cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 3, (255, 0,0))
-	cv2.imshow('april_tag', rgb_image)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
+	# cv2.imshow('april_tag', rgb_image)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
 	print "Sample points from the RGB sensor"
 	print  sample_points[0:5, :]
 	rgb_plane_est = bayesplane.fit_plane_bayes(sample_points, cov)
-	plot(rgb_plane_est, 10)
+	rgbplane = rgb_plane_est.mean.plot(center=None,
+           								scale=0.5, color='r', alpha=0.5, ax=None)
+	depthplane = depth_plane_est.plot(10, center=None,
+           							  scale=0.5, color='b', ax=rgbplane)
+	plt.show()
+
 
 if __name__ == '__main__':
 	main(sys.argv)
