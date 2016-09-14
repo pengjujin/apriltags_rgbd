@@ -116,7 +116,6 @@ def fit_plane_bayes(data, cov):
         np.dot(n.T, np.dot(M, n)) * np.eye(data.shape[1])
     return BayesPlane(plane, -np.linalg.inv(H))
 
-
 def test_synthetic():
     '''
     Testing with synthetic 2D and 3D examples

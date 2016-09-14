@@ -6,6 +6,8 @@ import bayesplane
 import plane
 import transformation as tf
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
 def main(args):
 	# Declare Test Variables
@@ -39,7 +41,6 @@ def main(args):
 	print "Sample points from the depth sensor"
 	print samples[0:5, :]
 	cov = np.asarray([sample_cov] * samples.shape[0])
-	print cov
 	depth_plane_est = bayesplane.fit_plane_bayes(samples, cov)
 
 	# For now hard code the test data x y values
@@ -72,12 +73,15 @@ def main(args):
 	x_samples = np.linspace(-0.01, 0.01, num = 10)
 	y_samples = np.linspace(-0.01, 0.01, num = 10)
 	sample_points = []
+	sample_points_test = []
 	for i in x_samples:
 		for j in y_samples:
 			sample_points.append([i,j,0,1])
+			sample_points_test.append([i,j, 0])
 	sample_points = np.transpose(np.array(sample_points))
 	sample_points_viz = np.dot(C, sample_points)
-	sample_points = np.transpose(np.dot(M, sample_points))
+	sample_points_3d = np.transpose(np.dot(M, sample_points))
+	sample_points_test = np.array(sample_points_test)
 	for i in range(0, 50):
 		x_coord = sample_points_viz[0, i] / sample_points_viz[2, i]
 		y_coord = sample_points_viz[1, i] / sample_points_viz[2, i]
@@ -86,13 +90,35 @@ def main(args):
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
 	print "Sample points from the RGB sensor"
-	print  sample_points[0:5, :]
-	rgb_plane_est = bayesplane.fit_plane_bayes(sample_points, cov)
-	rgbplane = rgb_plane_est.mean.plot(center=None,
-           								scale=0.5, color='r', alpha=0.5, ax=None)
-	depthplane = depth_plane_est.plot(10, center=None,
-           							  scale=0.5, color='b', ax=rgbplane)
+	print  sample_points_3d[0:5, :]
+	cov = np.asarray([0.01] * sample_points_3d.shape[0])
+	rgb_plane_est = bayesplane.fit_plane_bayes(sample_points_3d, cov)
+	rgb_plane_est_test = bayesplane.fit_plane_bayes(sample_points_test, cov)
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	
+	#ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c='b')
+	ax.set_xlabel('X Label')
+	ax.set_ylabel('Y Label')
+	ax.set_zlabel('Z Label')
+	# plane_act = plane.Plane(np.random.rand(3), np.random.rand(1))
+	# samples = plane_act.sample(200)
+	# cov = np.asarray([sample_cov] * samples.shape[0])
+	# plane_est = bayesplane.fit_plane_bayes(samples, cov)
+	#rgbplane = rgb_plane_est.mean.plot(center=None,
+    #       								scale=0.05, color='r', ax=ax)
+	ax.scatter(sample_points_3d[:, 0], sample_points_3d[:, 1], sample_points_3d[:, 2], c='b')
+	#ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c='g')
+   	#ax.scatter(sample_points_test[:, 0], sample_points_test[:, 1], sample_points_test[:, 2], c='b')
+   	rgbplane = rgb_plane_est.plot(10, center=np.array([0.190, -0.450, 1.59]), scale= 0.1, color='r', ax=ax)
+	#rgbplane = rgb_plane_est_test.plot(10, center=np.array([0.0, -0.0, 0]), scale= 0.01, color='r', ax=ax)
+	print rgb_plane_est_test.cov
+	print rgb_plane_est.cov
 	plt.show()
+	#depthplane = depth_plane_est.plot(10, center=None,
+    #       							  scale=0.5, color='b', ax=rgbplane)
+	#print depth_plane_est.cov;
+	#plt.show()
 
 
 if __name__ == '__main__':
