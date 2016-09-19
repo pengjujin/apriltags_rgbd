@@ -70,8 +70,18 @@ vector<float> Plane3d::point_probability(vector<Vector3f> points,
 }
 
 vector<Vector3f> Plane3d::sample(int M){
-  vector<Vector3f> basis = basis();
-  
+  vector<Vector3f> basis = Plane3d::basis();
+  std::default_random_engine generator;
+  std::uniform_real_distribution<double> uni_distribution(0.0,1.0);
+  vector<Vector3f> sampled_points;
+  for(int i = 0; i < M; i++){
+    double num1 = uni_distribution(generator);
+    double num2 = uni_distribution(generator);
+    Vector3f samples = num1 * basis[0] + num2 * basis[2];
+    samples = samples + n * d;
+    sampled_points.push_back(samples);
+  }
+  return sampled_points;
 }
 
 } // namespace Plane3d

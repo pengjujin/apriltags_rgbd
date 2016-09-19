@@ -15,7 +15,7 @@ class Plane3d{
     vector<Vector3f> project(vector<Vector3f> points);
     vector<float> distance(vector<Vector3f> points);
     vector<float> point_probability(vector<Vector3f> points, vector<float> cov);
-    MatrixXd sample(MatrixXd points); 
+    vector<Vector3f> sample(int M); 
   private:
     Vector3f n;
     double d;
