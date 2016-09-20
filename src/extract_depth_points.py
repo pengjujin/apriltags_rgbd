@@ -91,7 +91,7 @@ def main(args):
 	# cv2.destroyAllWindows()
 	print "Sample points from the RGB sensor"
 	print  sample_rgb[0:5, :]
-	cov = np.asarray([1] * sample_rgb.shape[0])
+	cov = np.asarray([0.9] * sample_rgb.shape[0])
 	rgb_plane_est = bayesplane.fit_plane_bayes(sample_rgb, cov)
 	
 	## Plotting for visual effects
@@ -106,25 +106,33 @@ def main(args):
 	ax.set_zlabel('Z Label')
 	ax.scatter(sample_rgb[:, 0], sample_rgb[:, 1], sample_rgb[:, 2], c='b')
 	ax.scatter(samples_depth[:, 0], samples_depth[:, 1], samples_depth[:, 2], c='g')
-   	rgbplane = rgb_plane_est.plot(10, center=np.array([0.190, -0.450, 1.59]), scale= 0.01, color='r', ax=ax)
-	plt.show()
+   	#rgbplane = rgb_plane_est.plot(10, center=np.array([0.190, -0.450, 1.59]), scale= 0.01, color='r', ax=ax)
+	#plt.show()
 
 	## Kalman Update stage
 	mean_rgb = rgb_plane_est.mean.vectorize()[:, np.newaxis].T
 	mean_depth = depth_plane_est.mean.vectorize()[:, np.newaxis].T
-	cov_rgb = rgb_plane_est.cov
+	#cov_rgb = rgb_plane_est.cov
 	cov_depth = depth_plane_est.cov
+	print "cov_depth: "
+	print depth_plane_est.cov
+	print "cov_rgb: "
+	print rgb_plane_est.cov
+	cov_rgb = np.eye(4)
+	#cov_depth = np.eye(4)
 	cov_rgb_sq = np.dot(cov_rgb.T, cov_rgb)
 	cov_depth_sq = np.dot(cov_depth.T, cov_depth)
-	mean_fused = np.divide((np.dot(mean_rgb, cov_rgb_sq) + np.dot(mean_depth, cov_depth_sq)) , (cov_rgb_sq + cov_depth_sq))
-
+	mean_fused = np.dot((np.dot(mean_rgb, cov_rgb_sq) + np.dot(mean_depth, cov_depth_sq)) , np.linalg.inv(cov_rgb_sq + cov_depth_sq))
+	mean_fused = mean_fused.flatten()
+	fuse_plane = plane.Plane(mean_fused[0:3], mean_fused[3])
+	fuse_plane_plot = fuse_plane.plot(center=np.array([0.190, -0.450, 1.59]), scale= 0.01, color='r', ax=ax)
 	print "mean_rgb: "
 	print mean_rgb
 	print "mean_depth: "
 	print mean_depth
 	print "mean_fused: "
 	print mean_fused
-
+	plt.show()
 
 if __name__ == '__main__':
 	main(sys.argv)
