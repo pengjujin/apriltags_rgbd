@@ -133,11 +133,8 @@ def test_synthetic():
     print "3D TEST"
     plane_act = Plane(np.random.rand(3), np.random.rand(1))
     samples = plane_act.sample(200)
-    print samples
     cov = np.asarray([sample_cov] * samples.shape[0])
     plane_est = fit_plane_bayes(samples, cov)
-    print "Actual plane:", plane_act
-    print "Estimated plane:", plane_est
     plane_est.plot(10)
 
 if __name__ == "__main__":

@@ -36,12 +36,12 @@ def main(args):
 				x = (i - px) * depth / fx
 				y = (j - py) * depth / fy
 				all_pts.append([x,y,depth])
-	sample_cov = 0.01
-	samples = np.array(all_pts)
+	sample_cov = 0.9
+	samples_depth = np.array(all_pts)
 	print "Sample points from the depth sensor"
-	print samples[0:5, :]
-	cov = np.asarray([sample_cov] * samples.shape[0])
-	depth_plane_est = bayesplane.fit_plane_bayes(samples, cov)
+	print samples_depth[0:5, :]
+	cov = np.asarray([sample_cov] * samples_depth.shape[0])
+	depth_plane_est = bayesplane.fit_plane_bayes(samples_depth, cov)
 
 	# For now hard code the test data x y values
 	# Generate homogenous matrix for pose 
@@ -80,7 +80,7 @@ def main(args):
 			sample_points_test.append([i,j, 0])
 	sample_points = np.transpose(np.array(sample_points))
 	sample_points_viz = np.dot(C, sample_points)
-	sample_points_3d = np.transpose(np.dot(M, sample_points))
+	sample_rgb = np.transpose(np.dot(M, sample_points))
 	sample_points_test = np.array(sample_points_test)
 	for i in range(0, 50):
 		x_coord = sample_points_viz[0, i] / sample_points_viz[2, i]
@@ -90,10 +90,13 @@ def main(args):
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
 	print "Sample points from the RGB sensor"
-	print  sample_points_3d[0:5, :]
-	cov = np.asarray([0.01] * sample_points_3d.shape[0])
-	rgb_plane_est = bayesplane.fit_plane_bayes(sample_points_3d, cov)
-	rgb_plane_est_test = bayesplane.fit_plane_bayes(sample_points_test, cov)
+	print  sample_rgb[0:5, :]
+	cov = np.asarray([1] * sample_rgb.shape[0])
+	rgb_plane_est = bayesplane.fit_plane_bayes(sample_rgb, cov)
+	
+	## Plotting for visual effects
+	print "rgb_plane_est cov: "
+	print rgb_plane_est.cov
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
 	
@@ -101,24 +104,26 @@ def main(args):
 	ax.set_xlabel('X Label')
 	ax.set_ylabel('Y Label')
 	ax.set_zlabel('Z Label')
-	# plane_act = plane.Plane(np.random.rand(3), np.random.rand(1))
-	# samples = plane_act.sample(200)
-	# cov = np.asarray([sample_cov] * samples.shape[0])
-	# plane_est = bayesplane.fit_plane_bayes(samples, cov)
-	#rgbplane = rgb_plane_est.mean.plot(center=None,
-    #       								scale=0.05, color='r', ax=ax)
-	ax.scatter(sample_points_3d[:, 0], sample_points_3d[:, 1], sample_points_3d[:, 2], c='b')
-	#ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c='g')
-   	#ax.scatter(sample_points_test[:, 0], sample_points_test[:, 1], sample_points_test[:, 2], c='b')
-   	rgbplane = rgb_plane_est.plot(10, center=np.array([0.190, -0.450, 1.59]), scale= 0.1, color='r', ax=ax)
-	#rgbplane = rgb_plane_est_test.plot(10, center=np.array([0.0, -0.0, 0]), scale= 0.01, color='r', ax=ax)
-	print rgb_plane_est_test.cov
-	print rgb_plane_est.cov
+	ax.scatter(sample_rgb[:, 0], sample_rgb[:, 1], sample_rgb[:, 2], c='b')
+	ax.scatter(samples_depth[:, 0], samples_depth[:, 1], samples_depth[:, 2], c='g')
+   	rgbplane = rgb_plane_est.plot(10, center=np.array([0.190, -0.450, 1.59]), scale= 0.01, color='r', ax=ax)
 	plt.show()
-	#depthplane = depth_plane_est.plot(10, center=None,
-    #       							  scale=0.5, color='b', ax=rgbplane)
-	#print depth_plane_est.cov;
-	#plt.show()
+
+	## Kalman Update stage
+	mean_rgb = rgb_plane_est.mean.vectorize()[:, np.newaxis].T
+	mean_depth = depth_plane_est.mean.vectorize()[:, np.newaxis].T
+	cov_rgb = rgb_plane_est.cov
+	cov_depth = depth_plane_est.cov
+	cov_rgb_sq = np.dot(cov_rgb.T, cov_rgb)
+	cov_depth_sq = np.dot(cov_depth.T, cov_depth)
+	mean_fused = np.divide((np.dot(mean_rgb, cov_rgb_sq) + np.dot(mean_depth, cov_depth_sq)) , (cov_rgb_sq + cov_depth_sq))
+
+	print "mean_rgb: "
+	print mean_rgb
+	print "mean_depth: "
+	print mean_depth
+	print "mean_fused: "
+	print mean_fused
 
 
 if __name__ == '__main__':
