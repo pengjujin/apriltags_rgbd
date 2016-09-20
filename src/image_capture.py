@@ -98,7 +98,7 @@ class image_capture:
 
 def main(args):
 	ic = image_capture()
-	rospy.init_node('image capturer', anonymous=True)
+	rospy.init_node('image_capture', anonymous=True)
 	try:
 		rospy.spin()
 	except KeyboardInterrupt:
