@@ -1,0 +1,55 @@
+
+			detection_id: 127 
+			point1:
+			corner_x: 400.5 
+			corner_y: 483.5
+			corner_z: 1.0
+			point2:
+			corner_x: 368.5 
+			corner_y: 481.5
+			corner_z: 1.0
+			point3:
+			corner_x: 359.5 
+			corner_y: 506.5
+			corner_z: 1.0
+			point4:
+			corner_x: 392.5 
+			corner_y: 509.5
+			corner_z: 1.0
+
+			tag_size: 0.0480000004172
+			position_x: -0.125288986787
+			position_y: 0.321374877438
+			position_z: 0.788106769301
+			rotation_x: -0.0459457472384
+			rotation_y: 0.828265255826
+			rotation_z: -0.55805580406
+			rotation_w: -0.0209612465482
+			
+			detection_id: 1 
+			point1:
+			corner_x: 584.5 
+			corner_y: 268.5
+			corner_z: 1.0
+			point2:
+			corner_x: 603.5 
+			corner_y: 274.5
+			corner_z: 1.0
+			point3:
+			corner_x: 604.5 
+			corner_y: 254.5
+			corner_z: 1.0
+			point4:
+			corner_x: 586.5 
+			corner_y: 249.5
+			corner_z: 1.0
+
+			tag_size: 0.0480000004172
+			position_x: 0.290623142918
+			position_y: -0.0266687975686
+			position_z: 1.20030737138
+			rotation_x: 0.970358818444
+			rotation_y: 0.105224751742
+			rotation_z: 0.145592452085
+			rotation_w: 0.161661229068
+			
