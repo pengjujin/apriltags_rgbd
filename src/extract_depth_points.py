@@ -94,26 +94,29 @@ def main(args):
 	cov = np.asarray([0.9] * sample_rgb.shape[0])
 	rgb_plane_est = bayesplane.fit_plane_bayes(sample_rgb, cov)
 	
+	rgb_center = sample_rgb[50,:]
+	depth_center = samples_depth[100, :]
+	scale = 3
 	## Plotting for visual effects
 	print "rgb_plane_est cov: "
 	print rgb_plane_est.cov
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
-	
 	#ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c='b')
 	ax.set_xlabel('X Label')
 	ax.set_ylabel('Y Label')
 	ax.set_zlabel('Z Label')
 	ax.scatter(sample_rgb[:, 0], sample_rgb[:, 1], sample_rgb[:, 2], c='b')
 	ax.scatter(samples_depth[:, 0], samples_depth[:, 1], samples_depth[:, 2], c='g')
-   	#rgbplane = rgb_plane_est.plot(10, center=np.array([0.190, -0.450, 1.59]), scale= 0.01, color='r', ax=ax)
+   	rgbplane = rgb_plane_est.mean.plot(center=np.array(rgb_center), scale= scale, color='b', ax=ax)
+	depthplane = depth_plane_est.mean.plot(center=np.array(depth_center), scale= scale, color='g', ax=ax)
 	#plt.show()
 
 	## Kalman Update stage
 	mean_rgb = rgb_plane_est.mean.vectorize()[:, np.newaxis].T
 	mean_depth = depth_plane_est.mean.vectorize()[:, np.newaxis].T
 	#cov_rgb = rgb_plane_est.cov
-	cov_depth = depth_plane_est.cov
+	#cov_depth = depth_plane_est.cov
 	print "cov_depth: "
 	print depth_plane_est.cov
 	print "cov_rgb: "
@@ -125,17 +128,17 @@ def main(args):
 	mean_fused = np.dot((np.dot(mean_rgb, cov_rgb_sq) + np.dot(mean_depth, cov_depth_sq)) , np.linalg.inv(cov_rgb_sq + cov_depth_sq))
 	mean_fused = mean_fused.flatten()
 	fuse_plane = plane.Plane(mean_fused[0:3], mean_fused[3])
-	fuse_plane_plot = fuse_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= 0.01, color='b', ax=ax)
+	fuse_plane_plot = fuse_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='b', ax=ax)
 	average_mean = (rgb_plane_est.mean.vectorize() + depth_plane_est.mean.vectorize()) / 2
 	average_plane =  plane.Plane(average_mean[0:3], average_mean[3])
-	average_plane_plot = average_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= 0.01, color='r', ax=ax)
+	average_plane_plot = average_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='r', ax=ax)
 	print "mean_rgb: "
-	print mean_rgb
+	print mean_rgb / np.linalg.norm(mean_rgb)
 	print "mean_depth: "
-	print mean_depth
+	print mean_depth / np.linalg.norm(mean_depth)
 	print "mean_fused: "
-	print mean_fused
-	print average_mean
+	print mean_fused / np.linalg.norm(mean_fused)
+	print average_mean / np.linalg.norm(average_mean)
 	plt.show()
 
 
