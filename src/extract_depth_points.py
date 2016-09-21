@@ -8,7 +8,7 @@ import transformation as tf
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-
+import math
 def main(args):
 	# Declare Test Variables
 	# Camera Intrinsics
@@ -65,13 +65,9 @@ def main(args):
 	coord = np.dot(C, origin)
 	x_coord = coord[0] / coord[2]
 	y_coord = coord[1] / coord[2]
-	# cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 3, (255, 0,0))
-	# cv2.imshow('april_tag', rgb_image)
-	# cv2.waitKey(5)
-	# cv2.destroyAllWindows()
 
-	x_samples = np.linspace(-0.01, 0.01, num = 10)
-	y_samples = np.linspace(-0.01, 0.01, num = 10)
+	x_samples = np.linspace(-0.1, 0.1, num = 10)
+	y_samples = np.linspace(-0.1, 0.1, num = 10)
 	sample_points = []
 	sample_points_test = []
 	for i in x_samples:
@@ -82,13 +78,14 @@ def main(args):
 	sample_points_viz = np.dot(C, sample_points)
 	sample_rgb = np.transpose(np.dot(M, sample_points))
 	sample_points_test = np.array(sample_points_test)
-	for i in range(0, 50):
+	for i in range(0, 100):
 		x_coord = sample_points_viz[0, i] / sample_points_viz[2, i]
 		y_coord = sample_points_viz[1, i] / sample_points_viz[2, i]
-		cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 3, (255, 0,0))
-	# cv2.imshow('april_tag', rgb_image)
-	# cv2.waitKey(0)
-	# cv2.destroyAllWindows()
+		print sample_points_viz[2, i]
+		cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 5 - int(math.pow(8 * (sample_points_viz[2, i] - 1), 2)), (255, 0,0))
+	cv2.imshow('april_tag', rgb_image)
+	cv2.waitKey(0)
+	cv2.destroyAllWindows()
 	print "Sample points from the RGB sensor"
 	print  sample_rgb[0:5, :]
 	cov = np.asarray([0.9] * sample_rgb.shape[0])
@@ -96,7 +93,7 @@ def main(args):
 	
 	rgb_center = sample_rgb[50,:]
 	depth_center = samples_depth[100, :]
-	scale = 3
+	scale = 0.03
 	## Plotting for visual effects
 	print "rgb_plane_est cov: "
 	print rgb_plane_est.cov
@@ -133,14 +130,32 @@ def main(args):
 	average_plane =  plane.Plane(average_mean[0:3], average_mean[3])
 	average_plane_plot = average_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='r', ax=ax)
 	print "mean_rgb: "
-	print mean_rgb / np.linalg.norm(mean_rgb)
+	print mean_rgb 
 	print "mean_depth: "
-	print mean_depth / np.linalg.norm(mean_depth)
+	print mean_depth
 	print "mean_fused: "
 	print mean_fused / np.linalg.norm(mean_fused)
 	print average_mean / np.linalg.norm(average_mean)
+
+
+	vector_rgb = rgb_plane_est.mean.vectorize()[0:3]
+	vector_depth = depth_plane_est.mean.vectorize()[0:3]
+	vector_cross = np.cross(vector_rgb, vector_depth)
+	vector_sin = np.linalg.norm(vector_cross)
+	vector_cos = np.dot(vector_rgb, vector_depth)
+	vector_skew = np.array([[0, -vector_cross[2], vector_cross[1]],
+							   [vector_cross[2], 0, -vector_cross[0]],
+							   [-vector_cross[1], vector_cross[0], 0]])
+	vector_eye = np.eye(3)
+	R = vector_eye + vector_skew + np.linalg.matrix_power(vector_skew, 2) * (1 - vector_cos) / (vector_sin * vector_sin)
+	print R
+	mean_rgb_rotated = rgb_plane_est.mean.vectorize()[0 : 3, np.newaxis]
+	mean_rgb_rotated = np.dot(R, mean_rgb_rotated)
+	mean_rgb_rotated_r = mean_rgb_rotated.flatten()
+	mean_rgb_rotated_d = np.dot(mean_rgb_rotated_r, rgb_center)
+	print np.append(mean_rgb_rotated_r, mean_rgb_rotated_d)
+	plane_rotated = plane.Plane(mean_rgb_rotated_r, mean_rgb_rotated_d)
+	plane_rotated_plot = plane_rotated.plot(center=np.array(rgb_center), scale= scale, color='r', ax=ax)
 	plt.show()
-
-
 if __name__ == '__main__':
 	main(sys.argv)
