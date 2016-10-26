@@ -18,10 +18,10 @@ def main(args):
 	py = 273.26
 	I = np.array([fx, 0 , px, 0, fy, py, 0, 0, 1]).reshape(3,3)
 	
-	x_start = 586
-	x_end = 603
-	y_start = 255
-	y_end = 268
+	x_start = 590
+	x_end = 600
+	y_start = 256
+	y_end = 266
 	rgb_image = cv2.imread("../data/rgb_frame2.png")
 	depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
 	april_tag_rgb = rgb_image[y_start:y_end, x_start:x_end]
@@ -34,6 +34,7 @@ def main(args):
 			depth = depth_image[j,i] / 1000.0
 			if(depth != 0):
 				x = (i - px) * depth / fx
+				print x
 				y = (j - py) * depth / fy
 				all_pts.append([x,y,depth])
 	sample_cov = 0.9
@@ -56,32 +57,27 @@ def main(args):
 	M[0, 3] = x_t
 	M[1, 3] = y_t
 	M[2, 3] = z_t
-	M = np.delete(M, 3, 0)
+	M_d = np.delete(M, 3, 0)
 	print "Extrinsics"
 	print M # pose extrinsics
 	origin = np.array([0,0,0,1])
 	np.transpose(origin)
-	C = np.dot(I, M)
+	C = np.dot(I, M_d)
 	coord = np.dot(C, origin)
 	x_coord = coord[0] / coord[2]
 	y_coord = coord[1] / coord[2]
-
 	x_samples = np.linspace(-0.1, 0.1, num = 10)
 	y_samples = np.linspace(-0.1, 0.1, num = 10)
 	sample_points = []
-	sample_points_test = []
 	for i in x_samples:
 		for j in y_samples:
 			sample_points.append([i,j,0,1])
-			sample_points_test.append([i,j, 0])
 	sample_points = np.transpose(np.array(sample_points))
 	sample_points_viz = np.dot(C, sample_points)
-	sample_rgb = np.transpose(np.dot(M, sample_points))
-	sample_points_test = np.array(sample_points_test)
+	sample_rgb = np.transpose(np.dot(M_d, sample_points))
 	for i in range(0, 100):
 		x_coord = sample_points_viz[0, i] / sample_points_viz[2, i]
 		y_coord = sample_points_viz[1, i] / sample_points_viz[2, i]
-		print sample_points_viz[2, i]
 		cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 5 - int(math.pow(8 * (sample_points_viz[2, i] - 1), 2)), (255, 0,0))
 	cv2.imshow('april_tag', rgb_image)
 	cv2.waitKey(0)
@@ -92,14 +88,13 @@ def main(args):
 	rgb_plane_est = bayesplane.fit_plane_bayes(sample_rgb, cov)
 	
 	rgb_center = sample_rgb[50,:]
-	depth_center = samples_depth[100, :]
-	scale = 0.03
+	depth_center = samples_depth[50, :]
+	scale = 0.01
 	## Plotting for visual effects
 	print "rgb_plane_est cov: "
 	print rgb_plane_est.cov
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
-	#ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c='b')
 	ax.set_xlabel('X Label')
 	ax.set_ylabel('Y Label')
 	ax.set_zlabel('Z Label')
@@ -156,6 +151,31 @@ def main(args):
 	print np.append(mean_rgb_rotated_r, mean_rgb_rotated_d)
 	plane_rotated = plane.Plane(mean_rgb_rotated_r, mean_rgb_rotated_d)
 	plane_rotated_plot = plane_rotated.plot(center=np.array(rgb_center), scale= scale, color='r', ax=ax)
+
+	rotate_mat = np.eye(4)
+	rotate_mat[0:3, 0:3] = R
+	sub_center = np.eye(4)
+	sub_center[0:3, 3] = -1*rgb_center.T
+	add_center = np.eye(4)
+	add_center[0:3, 3] = rgb_center.T
+	post_rotate = np.dot(add_center, np.dot(rotate_mat, sub_center))
+	print "post rotate"
+	print post_rotate 
+	M_r = np.dot(post_rotate, M)
+
+	Mr_d = np.delete(M_r, 3, 0)
+	C_r = np.dot(I, Mr_d)
+	sample_points_viz_rotate = np.dot(C_r, sample_points)
+	sample_rgb_rotate = np.transpose(np.dot(Mr_d, sample_points))
+	ax.scatter(sample_rgb_rotate[:, 0], sample_rgb_rotate[:, 1], sample_rgb_rotate[:, 2], c='r')
 	plt.show()
+	for i in range(0, 100):
+		x_coord = sample_points_viz_rotate[0, i] / sample_points_viz_rotate[2, i]
+		y_coord = sample_points_viz_rotate[1, i] / sample_points_viz_rotate[2, i]
+		cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 5 - int(math.pow(8 * (sample_points_viz_rotate[2, i] - 1), 2)), (0, 255,0))
+	cv2.imshow('april_tag', rgb_image)
+	cv2.waitKey(0)
+	cv2.destroyAllWindows()
+
 if __name__ == '__main__':
 	main(sys.argv)
