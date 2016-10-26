@@ -29,6 +29,18 @@ def normal_transfomation(init_normal, goal_normal):
 	[rvec, job] = cv2.Rodrigues(R)
 	return rvec
 
+def plot_vector(vector, ax):
+	soa =np.array( [vector]) 
+	X,Y,Z,U,V,W = zip(*soa)
+	print_att("x", X)
+	ax.quiver(X,Y,Z,U,V,W, length = 0.05)
+
+	return ax
+
+def plot_samples(samples, ax):
+	ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c='g')
+	return ax
+
 def main(args):
 	# Declare Test Variables
 	# Camera Intrinsics
@@ -59,14 +71,13 @@ def main(args):
 	print "tvec:"
 	print tvec
 	rotM = cv2.Rodrigues(rvec)[0]
-
 	camera_extrinsics = np.eye(4)
-
 	camera_extrinsics[0:3, 0:3] = rotM
 	camera_extrinsics[0:3, 3:4] = tvec
-	print "extrinsics: "
+	print "Extrinsics using rgb corner: "
 	print camera_extrinsics
 
+	## Generate the depth samples from the depth image
 	x_start = 584
 	x_end = 600
 	y_start = 256
@@ -90,9 +101,26 @@ def main(args):
 	cov = np.asarray([sample_cov] * samples_depth.shape[0])
 	depth_plane_est = bayesplane.fit_plane_bayes(samples_depth, cov)
 	vector_depth = depth_plane_est.mean.vectorize()[0:3]
-
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.set_xlabel('X Label')
+	ax.set_ylabel('Y Label')
+	ax.set_zlabel('Z Label')
+	ax = plot_samples(samples_depth, ax)
+	print samples_depth.shape
+	depth_center = samples_depth[75, :]
+	depth_normal = depth_plane_est.mean.vectorize()[0 : 3] * 0.05
+	depth_center = [depth_center[0], depth_center[1], depth_center[2]]
+	print start
+	start = [x + y for x, y in zip(depth_center, depth_normal)] 
+	end = [depth_normal[0], depth_normal[1], depth_normal[2]]
+	print end
+	depth_normal_vec = start+end
+	print_att("depth_normal_vec", depth_normal_vec)
+	depthplane = depth_plane_est.mean.plot(center=np.array(depth_center), scale= 0.01, color='g', ax=ax)
+	ax = plot_vector(depth_normal_vec, ax)
 	# For now hard code the test data x y values
-	# Generate homogenous matrix for pose 
+	# Generate homogenous matrix for pose from the message
 	x_r = 0.970358818444
 	y_r = 0.105224751742
 	z_r = 0.145592452085
@@ -108,7 +136,10 @@ def main(args):
 	print "Extrinsics"
 	print M # pose extrinsics
 	
+	# Calculating the new pose based on the depth
 	init_vector = [0,0,1]
+	normal_z = [0,0,0,0,0,1]
+	# ax = plot_vector(normal_z, ax)
 	rvec_init = normal_transfomation(init_vector, vector_depth)
 	print_att("rvec_init", rvec_init)
 	retval, rvec, tvec = cv2.solvePnP(object_pts, image_pts, I, D, rvec=rvec_init, flags=cv2.ITERATIVE)
@@ -119,7 +150,9 @@ def main(args):
 	camera_extrinsics[0:3, 0:3] = rotM
 	camera_extrinsics[0:3, 3:4] = tvec
 	print "extrinsics_depth_corrected: "
-	print camera_extrinsics
+	print camera_extrinsics	
+
+	plt.show()
 
 if __name__ == '__main__':
 	main(sys.argv)
