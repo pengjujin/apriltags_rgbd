@@ -1,4 +1,4 @@
-import lmfit
+from scipy.optimize import least_squares
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
@@ -32,12 +32,18 @@ def model(x, K, D, object_pt):
 	rvec = np.array([rot1, rot2, rot3])
 	tvec = np.array([trans1, trans2, trans3])
 	err, jacob = cv2.projectPoints(object_pt, rvec, tvec, K, D)
-	return err
+	ret = np.array([err[0,0], err[1,0], err[2,0], err[3,0]])
+	return ret
 
-def residual(p, K, D, object_pt, img_pt):
-	return model(p, K, D, object_pt) - img_pt
+def residual(x, K, D, object_pt, image_pt):
+	diff = model(x, K, D, object_pt) - image_pt
+	# sum_diff = np.array([0,0])
+	# for i in diff:
+	# 	sum_diff = np.square(sum_diff) + i
+	sum_diff = np.concatenate([diff[0], diff[1], diff[2], diff[3]])
+	return sum_diff
 
-def jac(p, K, D, object_pt, img_pt):
+def jac(x, K, D, object_pt, image_pt):
 	rot1 = x[0]
 	rot2 = x[1]
 	rot3 = x[2]
@@ -49,6 +55,40 @@ def jac(p, K, D, object_pt, img_pt):
 	err, jacob = cv2.projectPoints(object_pt, rvec, tvec, K, D)
 	return jacob
 
-x0 = 
 
-res = least_squares(residual, x0, jac=jac, args=(K, D, object_pt, img_pt), verbose = 1, method='lm')
+tag_size = 0.0480000004172
+tag_radius = tag_size / 2.0
+ob_pt1 = [-tag_radius, -tag_radius, 0.0]
+ob_pt2 = [ tag_radius, -tag_radius, 0.0]
+ob_pt3 = [ tag_radius,  tag_radius, 0.0]
+ob_pt4 = [-tag_radius,  tag_radius, 0.0]
+ob_pts = ob_pt1 + ob_pt2 + ob_pt3 + ob_pt4
+object_pt = np.array(ob_pts).reshape(4,3)
+im_pt1 = [584.5,268.5]
+im_pt2 = [603.5,274.5]
+im_pt3 = [604.5,254.5]
+im_pt4 = [586.5,249.5]
+im_pts = [im_pt1] + [im_pt2] + [im_pt3] + [im_pt4]
+image_pt = np.array(im_pts).reshape(4,2)
+fx = 529.29
+fy = 531.28
+px = 466.96
+py = 273.26
+I = np.array([fx, 0 , px, 0, fy, py, 0, 0, 1]).reshape(3,3)
+K = I
+D = np.zeros((5,1))
+# x0 = [-0.32106359, 0.29009044, 0.9015352, 0.26856702, -0.02644549, 1.146]
+x0 = [-0.32106359, 0.29009044, 0.9015352, 0.0, 0.0, 0.1]
+
+# x0 = [2.76072895, 0.3005424, 0.42028413, 0.28941606, -0.026083, 1.19823801]
+# x0 = [ 3.2788047, 0.24224965, -1.34404619,  0.28906966, -0.02585935,  1.19846304]
+print object_pt
+print image_pt
+test_model = model(x0, K, D, object_pt)
+print test_model
+test = residual(x0, K, D, object_pt, image_pt)
+print test
+res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), verbose = 1)
+print res.x
+
+print np.sum(np.square(test)) * 0.5

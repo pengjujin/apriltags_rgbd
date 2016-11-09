@@ -132,6 +132,7 @@ def main(args):
 	ob_pts = ob_pt1 + ob_pt2 + ob_pt3 + ob_pt4
 	object_pts = np.array(ob_pts).reshape(4,3,1)
 	print_att("object_pts", object_pts)
+	print_att("image_pts", image_pts)
 	retval, rvec, tvec = cv2.solvePnP(object_pts, image_pts, I, D, flags=cv2.ITERATIVE)
 	print "rvec:"
 	print rvec
@@ -208,19 +209,21 @@ def main(args):
 	rotated_vector = np.dot(R, np.array(init_vector).reshape(3,1))
 	plot_norm2 = [rotated_vector[0,0], rotated_vector[1,0], rotated_vector[2,0]]
 	ax = plot_vector(plot_norm2 + plot_norm2, ax)
-	for x in range(0, 100):
-		tvec_init = np.array(depth_center).reshape(3,1)
-		rvec_init = np.random.rand(3,1)
-		print rvec_init
-		rvec, tvec, inliners = cv2.solvePnPRansac(object_pts, image_pts, I, D, rvec=rvec_init, tvec=tvec_init, flags=cv2.ITERATIVE)
-		rotM = cv2.Rodrigues(rvec)[0]
+	tvec_init = np.array(depth_center).reshape(3,1)
+	print_att("tvec_init", tvec_init)
+	# for x in range(0, 100):
+	# 	tvec_init = np.array(depth_center).reshape(3,1)
+	# 	rvec_init = np.random.rand(3,1)
+	# 	print rvec_init
+	# 	rvec, tvec, inliners = cv2.solvePnPRansac(object_pts, image_pts, I, D, rvec=rvec_init, tvec=tvec_init, flags=cv2.ITERATIVE)
+	# 	rotM = cv2.Rodrigues(rvec)[0]
 
-		camera_extrinsics = np.eye(4)
+	# 	camera_extrinsics = np.eye(4)
 
-		camera_extrinsics[0:3, 0:3] = rotM
-		camera_extrinsics[0:3, 3:4] = tvec
-		print "extrinsics_depth_corrected: "
-		print camera_extrinsics	
+	# 	camera_extrinsics[0:3, 0:3] = rotM
+	# 	camera_extrinsics[0:3, 3:4] = tvec
+	# 	print "extrinsics_depth_corrected: "
+	# 	print camera_extrinsics	
 
 
 	## rotating the norm purely based off of the rotation matrix
