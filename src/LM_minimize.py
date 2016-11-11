@@ -55,6 +55,18 @@ def jac(x, K, D, object_pt, image_pt):
 	err, jacob = cv2.projectPoints(object_pt, rvec, tvec, K, D)
 	return jacob
 
+def PnPMin(rvec, tvec, object_pt, image_pt, I, D):
+	x0 = np.append(rvec, tvec)
+	print x0
+	K = I
+	D = np.zeros((5,1))
+	relaxation = 100
+	bounds = ([x0[0]-relaxation, x0[1]-relaxation, x0[2]-relaxation, -np.inf, -np.inf, -np.inf], 
+			  [x[0]+relaxation, x0[1]+relaxation, x[0]+relaxation, np.inf, np.inf, np.inf])
+	res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), verbose = 1, bounds=bounds)
+	rvec_r = res.x[0:3]
+	tvec_r = res.x[3:6]
+	return rvec_r, tvec_r
 
 tag_size = 0.0480000004172
 tag_radius = tag_size / 2.0
@@ -78,7 +90,7 @@ I = np.array([fx, 0 , px, 0, fy, py, 0, 0, 1]).reshape(3,3)
 K = I
 D = np.zeros((5,1))
 # x0 = [-0.32106359, 0.29009044, 0.9015352, 0.26856702, -0.02644549, 1.146]
-x0 = [-0.32106359, 0.29009044, 0.9015352, 0.0, 0.0, 0.1]
+x0 = [-1.2 , -1.9, 0.0, 0.26856702, -0.02644549, 1.146]
 
 # x0 = [2.76072895, 0.3005424, 0.42028413, 0.28941606, -0.026083, 1.19823801]
 # x0 = [ 3.2788047, 0.24224965, -1.34404619,  0.28906966, -0.02585935,  1.19846304]

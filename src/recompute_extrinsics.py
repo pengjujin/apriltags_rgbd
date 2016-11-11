@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import math
+import LM_minimize as lm
 
 def print_att(att, mat):
 	print att + ":"
@@ -122,15 +123,15 @@ def main(args):
 	im_pt1 = [584.5,268.5]
 	im_pt2 = [603.5,274.5]
 	im_pt3 = [604.5,254.5]
-	im_pt4 = [586.5,249.5]
+	im_pt4 = [585.5,249.5]    #586.5 bad 585.5 good
 	im_pts = im_pt1 + im_pt2 + im_pt3 + im_pt4
-	image_pts = np.array(im_pts).reshape(4,2,1)
+	image_pts = np.array(im_pts).reshape(4,2)
 	ob_pt1 = [-tag_radius, -tag_radius, 0.0]
 	ob_pt2 = [ tag_radius, -tag_radius, 0.0]
 	ob_pt3 = [ tag_radius,  tag_radius, 0.0]
 	ob_pt4 = [-tag_radius,  tag_radius, 0.0]
 	ob_pts = ob_pt1 + ob_pt2 + ob_pt3 + ob_pt4
-	object_pts = np.array(ob_pts).reshape(4,3,1)
+	object_pts = np.array(ob_pts).reshape(4,3)
 	print_att("object_pts", object_pts)
 	print_att("image_pts", image_pts)
 	retval, rvec, tvec = cv2.solvePnP(object_pts, image_pts, I, D, flags=cv2.ITERATIVE)
@@ -181,7 +182,7 @@ def main(args):
 	rgb_normal_vec = start+end
 	print_att("rgb_normal_vec", rgb_normal_vec)
 	rgb_plane = rgb_plane_est.mean.plot(center=np.array([0,0,0]), scale= 1.5, color='r', ax=ax)
-	ax = plot_vector(rgb_normal_vec, ax)
+	# ax = plot_vector(rgb_normal_vec, ax)
 	# For now hard code the test data x y values
 	# Generate homogenous matrix for pose from the message
 	x_r = 0.970358818444
@@ -208,9 +209,13 @@ def main(args):
 	print_att("rvec_init", rvec_init)
 	rotated_vector = np.dot(R, np.array(init_vector).reshape(3,1))
 	plot_norm2 = [rotated_vector[0,0], rotated_vector[1,0], rotated_vector[2,0]]
-	ax = plot_vector(plot_norm2 + plot_norm2, ax)
+	# ax = plot_vector(plot_norm2 + plot_norm2, ax)
 	tvec_init = np.array(depth_center).reshape(3,1)
 	print_att("tvec_init", tvec_init)
+
+	nrvec, ntvec = lm.PnPMin(rvec_init, tvec_init, object_pts, image_pts, I, D)
+	print_att("new rvec:", nrvec) 
+	print_att("new tvec:", ntvec)
 	# for x in range(0, 100):
 	# 	tvec_init = np.array(depth_center).reshape(3,1)
 	# 	rvec_init = np.random.rand(3,1)
@@ -227,6 +232,7 @@ def main(args):
 
 
 	## rotating the norm purely based off of the rotation matrix
+	rotM = cv2.Rodrigues(nrvec)[0]
 	init_norm = [0,0,-1]
 	init_norm = np.array(init_norm).reshape(3,1)
 	rotated_norm = np.dot(rotM, init_norm)
@@ -237,7 +243,7 @@ def main(args):
 
 	ax = plot_vector(plot_norm + plot_norm, ax)
 
-	# plt.show()
+	plt.show()
 
 if __name__ == '__main__':
 	main(sys.argv)
