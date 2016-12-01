@@ -26,14 +26,14 @@ def normal_transfomation(init_normal, goal_normal):
 							   [-vector_cross[1], vector_cross[0], 0]])
 	vector_eye = np.eye(3)
 	R = vector_eye + vector_skew + np.linalg.matrix_power(vector_skew, 2) * (1 - vector_cos) / (vector_sin * vector_sin)
-	print_att("depth_R", R)
+	# print_att("depth_R", R)
 	[rvec, job] = cv2.Rodrigues(R)
 	return rvec, R
 
 def plot_vector(vector, ax):
 	soa =np.array( [vector]) 
 	X,Y,Z,U,V,W = zip(*soa)
-	print_att("x", X)
+	# print_att("x", X)
 	ax.quiver(X,Y,Z,U,V,W, length = 1)
 
 	return ax
@@ -60,8 +60,8 @@ def sample_rgb_plane():
 	M[1, 3] = y_t
 	M[2, 3] = z_t
 	M_d = np.delete(M, 3, 0)
-	print "Extrinsics"
-	print M # pose extrinsics
+	# print "Extrinsics"
+	# print M # pose extrinsics
 	origin = np.array([0,0,0,1])
 	np.transpose(origin)
 	C = np.dot(I, M_d)
@@ -132,19 +132,20 @@ def main(args):
 	ob_pt4 = [-tag_radius,  tag_radius, 0.0]
 	ob_pts = ob_pt1 + ob_pt2 + ob_pt3 + ob_pt4
 	object_pts = np.array(ob_pts).reshape(4,3)
-	print_att("object_pts", object_pts)
-	print_att("image_pts", image_pts)
+	# print_att("object_pts", object_pts)
+	# print_att("image_pts", image_pts)
 	retval, rvec, tvec = cv2.solvePnP(object_pts, image_pts, I, D, flags=cv2.ITERATIVE)
-	print "rvec:"
+	print "cv2 rvec:"
 	print rvec
-	print "tvec:"
+	print "cv2 tvec:"
 	print tvec
+	cv2rvec = rvec
 	rotM = cv2.Rodrigues(rvec)[0]
 	camera_extrinsics = np.eye(4)
 	camera_extrinsics[0:3, 0:3] = rotM
 	camera_extrinsics[0:3, 3:4] = tvec
-	print "Extrinsics using rgb corner: "
-	print camera_extrinsics
+	# print "Extrinsics using rgb corner: "
+	# print camera_extrinsics
 
 	## Init the plots
 	fig = plt.figure()
@@ -160,11 +161,9 @@ def main(args):
 	depth_center = samples_depth[75, :]
 	depth_center = [depth_center[0], depth_center[1], depth_center[2]]
 	start = [x + y for x, y in zip([0,0,0], depth_normal)] 
-	print start
 	end = [depth_normal[0], depth_normal[1], depth_normal[2]]
-	print end
 	depth_normal_vec = start+end
-	print_att("depth_normal_vec", depth_normal_vec)
+	# print_att("depth_normal_vec", depth_normal_vec)
 	depthplane = depth_plane_est.mean.plot(center=np.array(depth_center), scale= 1.5, color='g', ax=ax)
 	# ax = plot_vector(depth_normal_vec, ax)
 
@@ -176,11 +175,9 @@ def main(args):
 	# depth_center = samples_rgb[75, :]
 	# depth_center = [depth_center[0], depth_center[1], depth_center[2]]
 	start = [x + y for x, y in zip([0,0,0], rgb_normal)] 
-	print start
 	end = [rgb_normal[0], rgb_normal[1], rgb_normal[2]]
-	print end
 	rgb_normal_vec = start+end
-	print_att("rgb_normal_vec", rgb_normal_vec)
+	# print_att("rgb_normal_vec", rgb_normal_vec)
 	rgb_plane = rgb_plane_est.mean.plot(center=np.array([0,0,0]), scale= 1.5, color='r', ax=ax)
 	# ax = plot_vector(rgb_normal_vec, ax)
 	# For now hard code the test data x y values
@@ -197,22 +194,22 @@ def main(args):
 	M[1, 3] = y_t
 	M[2, 3] = z_t
 	M_d = np.delete(M, 3, 0)
-	print "Extrinsics"
-	print M # pose extrinsics
+	# print "Extrinsics"
+	# print M # pose extrinsics
 	
 	# Calculating the new pose based on the depth
-	init_vector = [0,0,-1]
+	init_vector = [0,0,10]
 	normal_z = [0,0,0,0,0,1]
 	# ax = plot_vector(normal_z, ax)
 	rvec_init, R = normal_transfomation(init_vector, depth_normal)
 	
-	print_att("rvec_init", rvec_init)
+
 	rotated_vector = np.dot(R, np.array(init_vector).reshape(3,1))
 	plot_norm2 = [rotated_vector[0,0], rotated_vector[1,0], rotated_vector[2,0]]
 	# ax = plot_vector(plot_norm2 + plot_norm2, ax)
 	tvec_init = np.array(depth_center).reshape(3,1)
-	print_att("tvec_init", tvec_init)
-
+	print_att("rvec_init", rvec_init.reshape(1, 3))
+	print_att("tvec_init", tvec_init.reshape(1, 3))
 	nrvec, ntvec = lm.PnPMin(rvec_init, tvec_init, object_pts, image_pts, I, D)
 	print_att("new rvec:", nrvec) 
 	print_att("new tvec:", ntvec)
@@ -233,17 +230,27 @@ def main(args):
 
 	## rotating the norm purely based off of the rotation matrix
 	rotM = cv2.Rodrigues(nrvec)[0]
-	init_norm = [0,0,-1]
+	init_norm = [0,0, 1]
 	init_norm = np.array(init_norm).reshape(3,1)
 	rotated_norm = np.dot(rotM, init_norm)
-	print_att("rotated_norm", rotated_norm)
-	start = rotated_norm
-	end = rotated_norm
+	# print_att("rotated_norm", rotated_norm)
 	plot_norm = [rotated_norm[0,0], rotated_norm[1,0], rotated_norm[2,0]]
 
 	ax = plot_vector(plot_norm + plot_norm, ax)
 
+	rotM2 = cv2.Rodrigues(cv2rvec)[0]
+	# init_norm = [0,0,-1]
+	# init_norm = np.array(init_norm).reshape(3,1)
+	# rotM2 = np.eye(3)
+	rotated_norm2 = np.dot(rotM2, init_norm)
+	# print_att("rotated_norm", rotated_norm)
+	plot_norm2 = [rotated_norm2[0,0], rotated_norm2[1,0], rotated_norm2[2,0]]
+	ax = plot_vector(plot_norm2 + plot_norm2, ax)
+	print rotM
+	print rotM2
+
 	plt.show()
+
 
 if __name__ == '__main__':
 	main(sys.argv)
