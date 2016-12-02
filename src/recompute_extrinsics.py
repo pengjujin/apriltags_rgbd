@@ -267,12 +267,16 @@ def main(args):
 	print_att("same as test2", result_pt2.reshape(1,4))
 	print_att("same as test3", result_pt3.reshape(1,4))
 	print_att("same as test4", result_pt4.reshape(1,4))
-	rvec_init, R = normal_transfomation(init_vector, depth_normal)
 	
-	rotated_vector = np.dot(R, np.array(init_vector).reshape(3,1))
-	plot_norm2 = [rotated_vector[0,0], rotated_vector[1,0], rotated_vector[2,0]]
+
+	# rvec_init, R = normal_transfomation(init_vector, depth_normal)
+	rvec_init, jacob = cv2.Rodrigues(Rdepth)
+	tvec_init = t_depth.reshape(3,1)
+
+	# rotated_vector = np.dot(R, np.array(init_vector).reshape(3,1))
+	# plot_norm2 = [rotated_vector[0,0], rotated_vector[1,0], rotated_vector[2,0]]
 	# ax = plot_vector(plot_norm2 + plot_norm2, ax)
-	tvec_init = np.array(depth_center).reshape(3,1)
+	# tvec_init = np.array(depth_center).reshape(3,1)
 	# print_att("rvec_init", rvec_init.reshape(1, 3))
 	# print_att("tvec_init", tvec_init.reshape(1, 3))
 	nrvec, ntvec = lm.PnPMin(rvec_init, tvec_init, object_pts, image_pts, I, D)
@@ -293,7 +297,13 @@ def main(args):
 	# 	print camera_extrinsics	
 
 
-
+	groundtruth = [[ 0.7279743, -0.06218355, -0.68277861],[ 0.26747103, -0.89120857, 0.3663421 ],[-0.6312786, -0.44931113, -0.63214464]]
+	groundtruth = np.array(groundtruth)
+	gt_vec, jacob = cv2.Rodrigues(groundtruth)
+	cv2error = lm.quatAngleDiff(gt_vec, cv2rvec)
+	nerror = lm.quatAngleDiff(gt_vec, nrvec)
+	print_att("cv2 error:", cv2error)
+	print_att("recompute error:", nerror)
 	## rotating the norm purely based off of the rotation matrix
 	rotM = cv2.Rodrigues(nrvec)[0]
 	init_norm = [0,0, 1]
@@ -312,8 +322,8 @@ def main(args):
 	# print_att("rotated_norm", rotated_norm)
 	plot_norm2 = [rotated_norm2[0,0], rotated_norm2[1,0], rotated_norm2[2,0]]
 	# ax = plot_vector(plot_norm2 + plot_norm2, ax)
-	print rotM
-	print rotM2
+	# print rotM
+	# print rotM2
 
 	plt.show()
 

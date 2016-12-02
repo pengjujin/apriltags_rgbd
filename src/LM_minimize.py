@@ -31,7 +31,7 @@ def quatAngleDiff(rvec1, rvec2):
 	print quat2 / tf.vector_norm(quat2)
 
 	dtheta = math.acos(2*(np.dot(quat1, quat2)**2)-1)
-	return dtheta 
+	return math.degrees(dtheta) 
 
 def model(x, K, D, object_pt):
 	rot1 = x[0]

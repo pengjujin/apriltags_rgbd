@@ -24,12 +24,12 @@ def rigid_transform_3D(A, B):
     U, S, Vt = linalg.svd(H)
 
     # R = Vt.T * U.T
-    R = dot(U, Vt.T)
+    R = dot(Vt.T, U.T)
     # special reflection case
     if linalg.det(R) < 0:
        print "Reflection detected"
        Vt[2,:] *= -1
-       R = Vt.T * U.T
+       R = dot(Vt.T, U.T)
 
     t = dot(-R,centroid_A.T) + centroid_B.T
 
