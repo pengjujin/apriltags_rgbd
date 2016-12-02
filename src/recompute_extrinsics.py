@@ -10,7 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import math
 import LM_minimize as lm
-
+import rigid_transform as rtrans
 def print_att(att, mat):
 	print att + ":"
 	print mat
@@ -38,8 +38,8 @@ def plot_vector(vector, ax):
 
 	return ax
 
-def plot_samples(samples, ax):
-	ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c='g')
+def plot_samples(samples, ax, color):
+	ax.scatter(samples[:, 0], samples[:, 1], samples[:, 2], c=color)
 	return ax
 
 def sample_rgb_plane():
@@ -68,8 +68,8 @@ def sample_rgb_plane():
 	coord = np.dot(C, origin)
 	x_coord = coord[0] / coord[2]
 	y_coord = coord[1] / coord[2]
-	x_samples = np.linspace(-0.1, 0.1, num = 10)
-	y_samples = np.linspace(-0.1, 0.1, num = 10)
+	x_samples = np.linspace(-0.024, 0.024, num = 10)
+	y_samples = np.linspace(-0.024, 0.024, num = 10)
 	sample_points = []
 	for i in x_samples:
 		for j in y_samples:
@@ -109,6 +109,29 @@ def sample_depth_plane():
 	depth_plane_est = bayesplane.fit_plane_bayes(samples_depth, cov)
 	return depth_plane_est, samples_depth
 
+def computeZ (n, d, x, y):
+	sum = n[0] * x + n[1] * y
+	z = (d - sum) / n[2]
+	return z
+
+def generate_depth_correspondence(pixel_point, depth_plane_est):
+	fx = 529.29
+	fx = 529.29
+	fy = 531.28
+	px = 466.96
+	py = 273.26
+	depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
+	x = pixel_point[0]
+	y = pixel_point[1]
+	depth = depth_image[y, x] / 1000.0
+	if(depth != 0):
+		X = (x - px) * depth / fx
+		Y = (y - py) * depth / fy
+	n = depth_plane_est.mean.n
+	d = depth_plane_est.mean.d
+	Z = computeZ(n, d, X, Y)
+	return [X, Y, Z]
+
 def main(args):
 	# Declare Test Variables
 	# Camera Intrinsics
@@ -144,6 +167,7 @@ def main(args):
 	camera_extrinsics = np.eye(4)
 	camera_extrinsics[0:3, 0:3] = rotM
 	camera_extrinsics[0:3, 3:4] = tvec
+	cv2H = camera_extrinsics
 	# print "Extrinsics using rgb corner: "
 	# print camera_extrinsics
 
@@ -157,28 +181,28 @@ def main(args):
 	## plot depth plane and normals
 	depth_plane_est, samples_depth = sample_depth_plane()
 	depth_normal = depth_plane_est.mean.vectorize()[0:3]
-	ax = plot_samples(samples_depth, ax)
+	ax = plot_samples(samples_depth, ax, 'g')
 	depth_center = samples_depth[75, :]
 	depth_center = [depth_center[0], depth_center[1], depth_center[2]]
 	start = [x + y for x, y in zip([0,0,0], depth_normal)] 
 	end = [depth_normal[0], depth_normal[1], depth_normal[2]]
 	depth_normal_vec = start+end
 	# print_att("depth_normal_vec", depth_normal_vec)
-	depthplane = depth_plane_est.mean.plot(center=np.array(depth_center), scale= 1.5, color='g', ax=ax)
+	# depthplane = depth_plane_est.mean.plot(center=np.array(depth_center), scale= 1.5, color='g', ax=ax)
 	# ax = plot_vector(depth_normal_vec, ax)
 
 	# Sample rgb plane and normals
 	rgb_plane_est, samples_rgb = sample_rgb_plane()
 	rgb_normal = rgb_plane_est.mean.vectorize()[0:3]
 	rgb_normal = [rgb_normal[0], rgb_normal[1], rgb_normal[2]]
-	ax = plot_samples(samples_rgb, ax)
+	ax = plot_samples(samples_rgb, ax, 'r')
 	# depth_center = samples_rgb[75, :]
 	# depth_center = [depth_center[0], depth_center[1], depth_center[2]]
 	start = [x + y for x, y in zip([0,0,0], rgb_normal)] 
 	end = [rgb_normal[0], rgb_normal[1], rgb_normal[2]]
 	rgb_normal_vec = start+end
 	# print_att("rgb_normal_vec", rgb_normal_vec)
-	rgb_plane = rgb_plane_est.mean.plot(center=np.array([0,0,0]), scale= 1.5, color='r', ax=ax)
+	# rgb_plane = rgb_plane_est.mean.plot(center=np.array([0,0,0]), scale= 1.5, color='r', ax=ax)
 	# ax = plot_vector(rgb_normal_vec, ax)
 	# For now hard code the test data x y values
 	# Generate homogenous matrix for pose from the message
@@ -201,18 +225,59 @@ def main(args):
 	init_vector = [0,0,10]
 	normal_z = [0,0,0,0,0,1]
 	# ax = plot_vector(normal_z, ax)
+	testPoint1 = generate_depth_correspondence(im_pt1, depth_plane_est) 
+	testPoint2 = generate_depth_correspondence(im_pt2, depth_plane_est)
+	testPoint3 = generate_depth_correspondence(im_pt3, depth_plane_est) 
+	testPoint4 = generate_depth_correspondence(im_pt4, depth_plane_est)
+	print_att("TEST POINT1", testPoint1)
+	print_att("TEST POINT2", testPoint2)
+	print_att("TEST POINT3", testPoint3)
+	print_att("TEST POINT4", testPoint4)
+	test_ob_point1 = np.array([-tag_radius, -tag_radius, 0.0, 1.0])
+	test_ob_point2 = np.array([ tag_radius, -tag_radius, 0.0, 1.0])
+	test_ob_point3 = np.array([ tag_radius,  tag_radius, 0.0, 1.0])
+	test_ob_point4 = np.array([-tag_radius,  tag_radius, 0.0, 1.0])
+	# result_pt1 = np.dot(cv2H, test_ob_point1.reshape(4,1))
+	# result_pt2 = np.dot(cv2H, test_ob_point2.reshape(4,1))
+	# result_pt3 = np.dot(cv2H, test_ob_point3.reshape(4,1))
+	# result_pt4 = np.dot(cv2H, test_ob_point4.reshape(4,1))
+	# print_att("FROM PIXEL1", result_pt1.reshape(1,4))
+	# print_att("FROM PIXEL2", result_pt2.reshape(1,4))
+	# print_att("FROM PIXEL3", result_pt3.reshape(1,4))
+	# print_att("FROM PIXEL4", result_pt4.reshape(1,4))
+	test_pts = testPoint1 + testPoint2 + testPoint3 + testPoint4
+	depth_points = np.array(test_pts).reshape(4,3)
+	tag_pts = np.hstack((test_ob_point1, test_ob_point2, test_ob_point3, test_ob_point4)).reshape(4, 4)
+	# print depth_points
+	# print tag_pts
+	print_att('object_pts', object_pts)
+	print_att('depth_pts', depth_points)
+	Rdepth, t_depth = rtrans.rigid_transform_3D(object_pts, depth_points)
+	print Rdepth
+	print t_depth
+	depthH = np.eye(4)
+	depthH[0:3, 0:3] = Rdepth
+	depthH[0:3, 3:4] = t_depth.reshape(3,1)
+	print depthH
+	result_pt1 = np.dot(depthH, test_ob_point1.reshape(4,1))
+	result_pt2 = np.dot(depthH, test_ob_point2.reshape(4,1))
+	result_pt3 = np.dot(depthH, test_ob_point3.reshape(4,1))
+	result_pt4 = np.dot(depthH, test_ob_point4.reshape(4,1))
+	print_att("same as test1", result_pt1.reshape(1,4))
+	print_att("same as test2", result_pt2.reshape(1,4))
+	print_att("same as test3", result_pt3.reshape(1,4))
+	print_att("same as test4", result_pt4.reshape(1,4))
 	rvec_init, R = normal_transfomation(init_vector, depth_normal)
 	
-
 	rotated_vector = np.dot(R, np.array(init_vector).reshape(3,1))
 	plot_norm2 = [rotated_vector[0,0], rotated_vector[1,0], rotated_vector[2,0]]
 	# ax = plot_vector(plot_norm2 + plot_norm2, ax)
 	tvec_init = np.array(depth_center).reshape(3,1)
-	print_att("rvec_init", rvec_init.reshape(1, 3))
-	print_att("tvec_init", tvec_init.reshape(1, 3))
+	# print_att("rvec_init", rvec_init.reshape(1, 3))
+	# print_att("tvec_init", tvec_init.reshape(1, 3))
 	nrvec, ntvec = lm.PnPMin(rvec_init, tvec_init, object_pts, image_pts, I, D)
-	print_att("new rvec:", nrvec) 
-	print_att("new tvec:", ntvec)
+	# print_att("new rvec:", nrvec) 
+	# print_att("new tvec:", ntvec)
 	# for x in range(0, 100):
 	# 	tvec_init = np.array(depth_center).reshape(3,1)
 	# 	rvec_init = np.random.rand(3,1)
@@ -228,6 +293,7 @@ def main(args):
 	# 	print camera_extrinsics	
 
 
+
 	## rotating the norm purely based off of the rotation matrix
 	rotM = cv2.Rodrigues(nrvec)[0]
 	init_norm = [0,0, 1]
@@ -236,7 +302,7 @@ def main(args):
 	# print_att("rotated_norm", rotated_norm)
 	plot_norm = [rotated_norm[0,0], rotated_norm[1,0], rotated_norm[2,0]]
 
-	ax = plot_vector(plot_norm + plot_norm, ax)
+	# ax = plot_vector(plot_norm + plot_norm, ax)
 
 	rotM2 = cv2.Rodrigues(cv2rvec)[0]
 	# init_norm = [0,0,-1]
@@ -245,7 +311,7 @@ def main(args):
 	rotated_norm2 = np.dot(rotM2, init_norm)
 	# print_att("rotated_norm", rotated_norm)
 	plot_norm2 = [rotated_norm2[0,0], rotated_norm2[1,0], rotated_norm2[2,0]]
-	ax = plot_vector(plot_norm2 + plot_norm2, ax)
+	# ax = plot_vector(plot_norm2 + plot_norm2, ax)
 	print rotM
 	print rotM2
 

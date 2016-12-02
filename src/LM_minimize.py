@@ -75,7 +75,7 @@ def PnPMin(rvec, tvec, object_pt, image_pt, I, D):
 			  [x0[0]+relaxation, x0[1]+relaxation, x0[2]+relaxation, np.inf, np.inf, np.inf])
 	# bounds = ([-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf], 
 	# 	  	  [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
-	res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), verbose = 2, bounds=bounds)
+	res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), verbose = 1, bounds=bounds)
 	# res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), method='lm', verbose = 1)
 	rvec_r = res.x[0:3]
 	tvec_r = res.x[3:6]
