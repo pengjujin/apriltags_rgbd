@@ -27,8 +27,8 @@ def quatAngleDiff(rvec1, rvec2):
 	quat1 = tf.quaternion_from_matrix(rot1)
 	quat2 = tf.quaternion_from_matrix(rot2)
 
-	print quat1 / tf.vector_norm(quat1)
-	print quat2 / tf.vector_norm(quat2)
+	# print quat1 / tf.vector_norm(quat1)
+	# print quat2 / tf.vector_norm(quat2)
 
 	dtheta = math.acos(2*(np.dot(quat1, quat2)**2)-1)
 	return math.degrees(dtheta) 
@@ -75,7 +75,7 @@ def PnPMin(rvec, tvec, object_pt, image_pt, I, D):
 			  [x0[0]+relaxation, x0[1]+relaxation, x0[2]+relaxation, np.inf, np.inf, np.inf])
 	# bounds = ([-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf], 
 	# 	  	  [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
-	res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), verbose = 1, bounds=bounds)
+	res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), verbose = 0, bounds=bounds)
 	# res = least_squares(residual, x0, args=(K, D, object_pt, image_pt), method='lm', verbose = 1)
 	rvec_r = res.x[0:3]
 	tvec_r = res.x[3:6]
@@ -118,8 +118,8 @@ def PnPMin(rvec, tvec, object_pt, image_pt, I, D):
 
 # print np.sum(np.square(test)) * 0.5
 
-r1 = np.array([ 3.33005081,  0.21025803, -1.34587401])
-r2 = np.array([ 4.21444723e-01,   6.75306829e-01,  -1.54594988e-17])
+# r1 = np.array([ 3.33005081,  0.21025803, -1.34587401])
+# r2 = np.array([ 4.21444723e-01,   6.75306829e-01,  -1.54594988e-17])
 
-ang = quatAngleDiff(r1, r2)
-print math.degrees(ang)
+# ang = quatAngleDiff(r1, r2)
+# print math.degrees(ang)

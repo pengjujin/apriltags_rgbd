@@ -27,7 +27,7 @@ def rigid_transform_3D(A, B):
     R = dot(Vt.T, U.T)
     # special reflection case
     if linalg.det(R) < 0:
-       print "Reflection detected"
+       # print "Reflection detected"
        Vt[2,:] *= -1
        R = dot(Vt.T, U.T)
 
@@ -37,56 +37,56 @@ def rigid_transform_3D(A, B):
 
     return R, t
 
-# Test with random data
+# # Test with random data
 
-# Random rotation and translation
-R = mat(random.rand(3,3))
-t = mat(random.rand(3,1))
+# # Random rotation and translation
+# R = mat(random.rand(3,3))
+# t = mat(random.rand(3,1))
 
-# make R a proper rotation matrix, force orthonormal
-U, S, Vt = linalg.svd(R)
-R = U*Vt
+# # make R a proper rotation matrix, force orthonormal
+# U, S, Vt = linalg.svd(R)
+# R = U*Vt
 
-# remove reflection
-if linalg.det(R) < 0:
-   Vt[2,:] *= -1
-   R = U*Vt
+# # remove reflection
+# if linalg.det(R) < 0:
+#    Vt[2,:] *= -1
+#    R = U*Vt
 
-# number of points
-n = 10
+# # number of points
+# n = 10
 
-A = mat(random.rand(n,3));
-B = R*A.T + tile(t, (1, n))
-B = B.T;
+# A = mat(random.rand(n,3));
+# B = R*A.T + tile(t, (1, n))
+# B = B.T;
 
-# recover the transformation
-ret_R, ret_t = rigid_transform_3D(A, B)
+# # recover the transformation
+# ret_R, ret_t = rigid_transform_3D(A, B)
 
-A2 = (ret_R*A.T) + tile(ret_t, (1, n))
-A2 = A2.T
+# A2 = (ret_R*A.T) + tile(ret_t, (1, n))
+# A2 = A2.T
 
-# Find the error
-err = A2 - B
+# # Find the error
+# err = A2 - B
 
-err = multiply(err, err)
-err = sum(err)
-rmse = sqrt(err/n);
+# err = multiply(err, err)
+# err = sum(err)
+# rmse = sqrt(err/n);
 
-print "Points A"
-print A
-print ""
+# print "Points A"
+# print A
+# print ""
 
-print "Points B"
-print B
-print ""
+# print "Points B"
+# print B
+# print ""
 
-print "Rotation"
-print R
-print ""
+# print "Rotation"
+# print R
+# print ""
 
-print "Translation"
-print t
-print ""
+# print "Translation"
+# print t
+# print ""
 
-print "RMSE:", rmse
-print "If RMSE is near zero, the function is correct!"
+# print "RMSE:", rmse
+# print "If RMSE is near zero, the function is correct!"

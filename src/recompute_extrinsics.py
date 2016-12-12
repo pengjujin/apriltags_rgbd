@@ -280,8 +280,8 @@ def main(args):
 	# print_att("rvec_init", rvec_init.reshape(1, 3))
 	# print_att("tvec_init", tvec_init.reshape(1, 3))
 	nrvec, ntvec = lm.PnPMin(rvec_init, tvec_init, object_pts, image_pts, I, D)
-	# print_att("new rvec:", nrvec) 
-	# print_att("new tvec:", ntvec)
+	print_att("new rvec:", nrvec) 
+	print_att("new tvec:", ntvec)
 	# for x in range(0, 100):
 	# 	tvec_init = np.array(depth_center).reshape(3,1)
 	# 	rvec_init = np.random.rand(3,1)
