@@ -7,6 +7,8 @@ import plane
 import transformation as tf
 import math
 import LM_minimize as lm
+# import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
 import rigid_transform as trans
 
 def normal_transfomation(init_normal, goal_normal):
@@ -29,21 +31,33 @@ def sample_depth_plane(depth_image, image_pts, K):
 	fy = K[1][1]
 	px = K[0][2]
 	py = K[1][2]
-	x_start = 584
-	x_end = 600
-	y_start = 256
-	y_end = 266
-	# rgb_image = cv2.imread("../data/rgb_frame2.png")
-	# depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
-
+	rows, cols = depth_image.shape
+	hull_pts = image_pts.reshape(4,1,2).astype(int)
+	rect = cv2.convexHull(hull_pts)
 	all_pts = []
-	for i in range(x_start, x_end):
-		for j in range(y_start, y_end):
-			depth = depth_image[j,i] / 1000.0
-			if(depth != 0):
-				x = (i - px) * depth / fx
-				y = (j - py) * depth / fy
-				all_pts.append([x,y,depth])
+
+	xcoord = image_pts[:, 0]
+	ycoord = image_pts[: ,1]
+	xmin = int(np.amin(xcoord))
+	xmax = int(np.amax(xcoord))
+	ymin = int(np.amin(ycoord))
+	ymax = int(np.amax(ycoord))
+
+	for j in range(ymin, ymax):
+		for i in range(xmin, xmax):
+			if (cv2.pointPolygonTest(rect, (i,j), False) > 0):
+				depth = depth_image[j,i] / 1000.0
+				if(depth != 0):
+					x = (i - px) * depth / fx
+					y = (j - py) * depth / fy
+					all_pts.append([x,y,depth])
+	# for i in range(x_start, x_end):
+	# 	for j in range(y_start, y_end):
+	# 		depth = depth_image[j,i] / 1000.0
+	# 		if(depth != 0):
+	# 			x = (i - px) * depth / fx
+	# 			y = (j - py) * depth / fy
+	# 			all_pts.append([x,y,depth])
 	sample_cov = 0.9
 	samples_depth = np.array(all_pts)
 	cov = np.asarray([sample_cov] * samples_depth.shape[0])
@@ -77,7 +91,6 @@ def getDepthPoints(image_pts, depth_plane_est, depth_image, K):
 			Z = computeZ(n, d, X, Y)
 			all_depth_points = all_depth_points + [[X, Y, Z]]
 	all_depth_points = np.array(all_depth_points)
-	# print all_depth_points
 	return all_depth_points
 
 def computeExtrinsics(object_pts, image_pts, depth_points, K, D, verbose=0):
@@ -129,9 +142,8 @@ def main():
 	ob_pts = ob_pt1 + ob_pt2 + ob_pt3 + ob_pt4
 	object_pts = np.array(ob_pts).reshape(4,3)
 
-	rgb_image = cv2.imread("../data/rgb_frame2.png")
+	rgb_image = cv2.imread("../data/rgb_frame2.png", 0)
 	depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
-
 
 	nrvec, ntvec = solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, 0)
 	print("nrev:")
