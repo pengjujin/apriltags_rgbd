@@ -1,55 +1,28 @@
 
-			detection_id: 127 
+			detection_id: 0 
 			point1:
-			corner_x: 411.5 
-			corner_y: 385.5
+			corner_x: 472.5 
+			corner_y: 285.5
 			corner_z: 1.0
 			point2:
-			corner_x: 387.5 
-			corner_y: 383.5
+			corner_x: 500.5 
+			corner_y: 285.5
 			corner_z: 1.0
 			point3:
-			corner_x: 380.5 
-			corner_y: 396.5
+			corner_x: 500.5 
+			corner_y: 258.5
 			corner_z: 1.0
 			point4:
-			corner_x: 404.5 
-			corner_y: 400.5
+			corner_x: 473.5 
+			corner_y: 258.5
 			corner_z: 1.0
 
 			tag_size: 0.0480000004172
-			position_x: -0.137849730094
-			position_y: 0.229116190252
-			position_z: 1.04305192097
-			rotation_x: -0.0782293985385
-			rotation_y: 0.822858924349
-			rotation_z: -0.562285339268
-			rotation_w: -0.0248706467014
-			
-			detection_id: 150 
-			point1:
-			corner_x: 593.5 
-			corner_y: 238.5
-			corner_z: 1.0
-			point2:
-			corner_x: 591.5 
-			corner_y: 259.5
-			corner_z: 1.0
-			point3:
-			corner_x: 611.5 
-			corner_y: 257.5
-			corner_z: 1.0
-			point4:
-			corner_x: 613.5 
-			corner_y: 235.5
-			corner_z: 1.0
-
-			tag_size: 0.0480000004172
-			position_x: 0.285860962371
-			position_y: -0.0541927139829
-			position_z: 1.11451130905
-			rotation_x: 0.626843255941
-			rotation_y: 0.657607431464
-			rotation_z: -0.381845560556
-			rotation_w: -0.169746771538
+			position_x: 0.0343233400823
+			position_y: -0.00234641109975
+			position_z: 0.918781027116
+			rotation_x: 0.991342961954
+			rotation_y: 0.00679171280228
+			rotation_z: -0.0595567536713
+			rotation_w: 0.116816084143
 			
