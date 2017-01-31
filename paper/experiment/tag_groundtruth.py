@@ -5,6 +5,14 @@ import glob
 mtx = np.array([529.2945, 0.0, 466.9604, 0.0, 531.2834, 273.25937, 0, 0, 1]).reshape(3,3)
 dist = np.zeros((5,1))
 square_size = 0.029 
+
+def cv2hom(rvec, tvec):
+	rmat, jacob = cv2.Rodrigues(rvec)
+	H = np.eye(4)
+	H[0:3][:,0:3] = rmat
+	H[0:3][:, 3] = tvecs.reshape(3)
+	return H
+
 def draw(img, corners, imgpts):
     corner = tuple(corners[0].ravel())
     cv2.line(img, corner, tuple(imgpts[0].ravel()), (255,0,0), 5)
@@ -32,10 +40,23 @@ if ret == True:
 	rvecs, tvecs, inliers = cv2.solvePnPRansac(objp, corners, mtx, dist)
 	imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist)
 	img = draw(img, corners, imgpts)
+	print tvecs
+	board_h = cv2hom(rvecs, tvecs)
+	print board_h
 
-	measured = np.array([0.305, -0.006, 0]).reshape(3,1)
-	
-
+	aptag_h = np.eye(4)
+	aptag_offset = np.array([0.305, -0.006, 0]).reshape(3,1)
+	aptag_h[0:3][:, 3] = aptag_offset.reshape(3)
+	groundtruth_h = np.dot(board_h, aptag_h)
+	print groundtruth_h
+	groundtruth_rvec, _ = cv2.Rodrigues(groundtruth_h[0:3][:,0:3])
+	groundtruth_tvec = groundtruth_h[0:3][:,3].reshape(3,1)
+	origin_point = np.float32([[0,0,0]])
+	origin_pt, _ = cv2.projectPoints(origin_point, groundtruth_rvec, groundtruth_tvec, mtx, dist)
+	print origin_pt 
+	x = origin_pt[0][0][0]
+	y = origin_pt[0][0][1]
+	cv2.circle(img, (x,y), 5, (0,0,255), -1)
 	cv2.imshow('img', img)
 	k = cv2.waitKey(0)
 
