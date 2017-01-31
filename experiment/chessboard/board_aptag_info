@@ -1,0 +1,48 @@
+y: -0.6 cm
+x: 30.5 cm 
+
+
+
+header: 
+  seq: 142624
+  stamp: 
+    secs: 1485826740
+    nsecs: 901619301
+  frame_id: /head/kinect2_rgb_optical_frame
+detections: 
+  - 
+    header: 
+      seq: 0
+      stamp: 
+        secs: 1485826740
+        nsecs: 901619301
+      frame_id: /head/kinect2_rgb_optical_frame
+    id: 0
+    corners2d: 
+      - 
+        x: 472.5
+        y: 285.5
+        z: 1.0
+      - 
+        x: 500.5
+        y: 285.5
+        z: 1.0
+      - 
+        x: 500.5
+        y: 258.5
+        z: 1.0
+      - 
+        x: 473.5
+        y: 258.5
+        z: 1.0
+    tag_size: 0.0480000004172
+    pose: 
+      position: 
+        x: 0.0343233400823
+        y: -0.00234641109975
+        z: 0.918781027116
+      orientation: 
+        x: 0.991342961954
+        y: 0.00679171280228
+        z: -0.0595567536713
+        w: 0.116816084143

@@ -70,7 +70,7 @@ def PnPMin(rvec, tvec, object_pt, image_pt, I, D):
 	x0 = np.append(rvec, tvec)
 	K = I
 	D = np.zeros((5,1))
-	relaxation = 100
+	relaxation = 0.2
 	bounds = ([x0[0]-relaxation, x0[1]-relaxation, x0[2]-relaxation, -np.inf, -np.inf, -np.inf], 
 			  [x0[0]+relaxation, x0[1]+relaxation, x0[2]+relaxation, np.inf, np.inf, np.inf])
 	# bounds = ([-np.inf, -np.inf, -np.inf, -np.inf, -np.inf, -np.inf], 

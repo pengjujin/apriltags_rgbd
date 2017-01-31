@@ -11,10 +11,46 @@ from cv_bridge import CvBridge, CvBridgeError
 class image_capture:
 	def __init__(self):
 			self.bridge = CvBridge()
-			self.image_rgb_sub = rospy.Subscriber("/head/kinect2/qhd/image_color_rect", Image, self.rgb_callback)
-			self.image_depth_sub = rospy.Subscriber("/head/kinect2/qhd/image_depth_rect", Image, self.depth_callback)
-			self.apriltag_sub = rospy.Subscriber("/apriltags_kinect2/detections", AprilTagDetections, self.tag_callback)
-			self.tag_filepath = '../data/apriltag_info.txt'
+			# self.image_rgb_sub = rospy.Subscriber("/head/kinect2/qhd/image_color_rect", Image, self.rgb_callback)
+			# self.image_depth_sub = rospy.Subscriber("/head/kinect2/qhd/image_depth_rect", Image, self.depth_callback)
+			# self.apriltag_sub = rospy.Subscriber("/apriltags_kinect2/detections", AprilTagDetections, self.tag_callback)
+
+			tss = ApproximateTimeSynchronizer([Subscriber("/head/kinect2/qhd/image_color_rect", Image),
+											Subscriber("/head/kinect2/qhd/image_depth_rect", Image),
+											Subscriber("/apriltags_kinect2/detections", AprilTagDetections)], 1 ,0.5)
+			tss.registerCallback(self.processtag_callback)
+
+			self.tag_filepath = '../data/apriltag_info%04d.txt'
+			self.rgb_filepath = '../data/rgb_frame%04d.png'
+			self.depth_filepath = '../data/depth_frame%04d.png'
+			self.counter = 0
+
+	def processtag_callback(self, rgb_data, depth_data, tag_data):
+		try:
+			rgb_image = self.bridge.imgmsg_to_cv2(rgb_data, "bgr8")
+			depth_image = self.bridge.imgmsg_to_cv2(depth_data, "16UC1")
+		except CvBridgeError as e:
+			print(e)
+
+		all_detections = tag_data.detections
+		allstring = ''
+		for current_detection in all_detections:
+			detection_string = self.format_AprilTagDetections(current_detection)
+			allstring = allstring + detection_string
+
+		self.rgb_image = rgb_image
+		self.depth_image = depth_image
+		self.detection_string = allstring
+
+	def key_press():
+		cv2.imwrite((self.rgb_filepath % (self.counter,)), self.rgb_image)
+		cv2.imwrite((self.depth_filepath % (self.counter,)), self.depth_image)
+		temppath = self.tag_filepath % (self.counter, ) 
+		with open(temppath, 'w') as f:
+			f.write(self.detection_string)
+		f.close()
+		self.counter = self.counter + 1
+
 	def rgb_callback(self, data):
 		try:
 			rgb_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
