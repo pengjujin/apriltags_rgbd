@@ -5,7 +5,7 @@ import cv2
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from apriltags.msg import AprilTagDetections
-
+from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
 from cv_bridge import CvBridge, CvBridgeError
 
 class image_capture:
@@ -14,16 +14,15 @@ class image_capture:
 			# self.image_rgb_sub = rospy.Subscriber("/head/kinect2/qhd/image_color_rect", Image, self.rgb_callback)
 			# self.image_depth_sub = rospy.Subscriber("/head/kinect2/qhd/image_depth_rect", Image, self.depth_callback)
 			# self.apriltag_sub = rospy.Subscriber("/apriltags_kinect2/detections", AprilTagDetections, self.tag_callback)
-
 			tss = ApproximateTimeSynchronizer([Subscriber("/head/kinect2/qhd/image_color_rect", Image),
 											Subscriber("/head/kinect2/qhd/image_depth_rect", Image),
 											Subscriber("/apriltags_kinect2/detections", AprilTagDetections)], 1 ,0.5)
 			tss.registerCallback(self.processtag_callback)
 
-			self.tag_filepath = '../data/apriltag_info%04d.txt'
-			self.rgb_filepath = '../data/rgb_frame%04d.png'
-			self.depth_filepath = '../data/depth_frame%04d.png'
-			self.counter = 0
+			self.tag_filepath = '../data/iros_data/apriltag_info_%04d.txt'
+			self.rgb_filepath = '../data/iros_data/rgb_frame%04d.png'
+			self.depth_filepath = '../data/iros_data/depth_frame%04d.png'
+			self.counter = 1
 
 	def processtag_callback(self, rgb_data, depth_data, tag_data):
 		try:
@@ -37,12 +36,16 @@ class image_capture:
 		for current_detection in all_detections:
 			detection_string = self.format_AprilTagDetections(current_detection)
 			allstring = allstring + detection_string
-
 		self.rgb_image = rgb_image
 		self.depth_image = depth_image
 		self.detection_string = allstring
+		cv2.imshow('Image', rgb_image)
+		key = cv2.waitKey(1)
+		if (key > -1):
+			self.key_press()
 
-	def key_press():
+	def key_press(self):
+		print ("saving data %04d" % (self.counter, ))
 		cv2.imwrite((self.rgb_filepath % (self.counter,)), self.rgb_image)
 		cv2.imwrite((self.depth_filepath % (self.counter,)), self.depth_image)
 		temppath = self.tag_filepath % (self.counter, ) 
