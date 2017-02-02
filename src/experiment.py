@@ -7,6 +7,7 @@ import rgb_depth_fuse as fuse
 import LM_minimize as lm 
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
+import parse
 # Experiment Parameters
 # mtx = Camera Matrix
 # dist = Camera distortion
@@ -19,8 +20,43 @@ square_size = 0.047
 tag_size = 0.0480000004172
 tag_radius = tag_size / 2.0
 
-rgb_image = cv2.imread("../data/iros_data/rgb_frame0000.png")
-depth_image = cv2.imread("../data/iros_data/depth_frame0000.png", cv2.IMREAD_ANYDEPTH)
+rgb_image = cv2.imread("../data/iros_data/rgb_frame0001.png")
+depth_image = cv2.imread("../data/iros_data/depth_frame0001.png", cv2.IMREAD_ANYDEPTH)
+info_file = "../data/iros_data/apriltag_info_0001.txt"
+
+def info_parser():
+	f = open(info_file, 'r')
+	all_file = f.read()
+	format_string = '''
+			detection_id: {0} 
+			point1:
+			corner_x: {1} 
+			corner_y: {2}
+			corner_z: {3}
+			point2:
+			corner_x: {4} 
+			corner_y: {5}
+			corner_z: {6}
+			point3:
+			corner_x: {7} 
+			corner_y: {8}
+			corner_z: {9}
+			point4:
+			corner_x: {10} 
+			corner_y: {11}
+			corner_z: {12}
+
+			tag_size: {13}
+			position_x: {14}
+			position_y: {15}
+			position_z: {16}
+			rotation_x: {17}
+			rotation_y: {18}
+			rotation_z: {19}
+			rotation_w: {20}
+			'''
+	parsed = parse.parse(format_string, all_file)
+	return parsed
 
 def cv2hom(rvec, tvec):
 	rmat, jacob = cv2.Rodrigues(rvec)
@@ -51,6 +87,7 @@ def quatAngleDiff(rot1, rot2):
 	return math.degrees(dtheta) 
 
 # Getting Apriltag groundtruth information from the chessboard 
+info_array = info_parser()
 
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 objp = np.zeros((3*4, 3), np.float32)
@@ -85,7 +122,7 @@ if ret == True:
 	exp_rmat = tf.quaternion_matrix([0.0594791427379, 0.885966679653, -0.0187847792584, -0.459534989083])
 	exp_h = exp_rmat
 	exp_rvec, _ = cv2.Rodrigues(exp_h[0:3][:, 0:3])
-	exp_tvec = np.array([0.201772100798, -0.139835385971, 1.27532936921]).reshape(3)
+	exp_tvec = np.array([0.0418834581845, -0.0488167871018, 1.05835901293]).reshape(3)
 	exp_h[0:3][:, 3] = exp_tvec #The pose of the tag measured from the Rosnode
 	print "Experimental H:"
 	print exp_h
