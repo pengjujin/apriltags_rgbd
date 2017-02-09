@@ -1,0 +1,28 @@
+
+			detection_id: 0 
+			point1:
+			corner_x: 635.5 
+			corner_y: 254.5
+			corner_z: 1.0
+			point2:
+			corner_x: 655.5 
+			corner_y: 253.5
+			corner_z: 1.0
+			point3:
+			corner_x: 658.5 
+			corner_y: 231.5
+			corner_z: 1.0
+			point4:
+			corner_x: 637.5 
+			corner_y: 233.5
+			corner_z: 1.0
+
+			tag_size: 0.0480000004172
+			position_x: 0.384675950615
+			position_y: -0.0649042046619
+			position_z: 1.13120118088
+			rotation_x: 0.900599778544
+			rotation_y: 0.0423654769947
+			rotation_z: -0.414531724968
+			rotation_w: 0.123647297751
+			

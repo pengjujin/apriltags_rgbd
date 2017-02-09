@@ -8,6 +8,7 @@ import LM_minimize as lm
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import parse
+
 # Experiment Parameters
 # mtx = Camera Matrix
 # dist = Camera distortion
@@ -83,9 +84,9 @@ def quatAngleDiff(rot1, rot2):
 	return math.degrees(dtheta) 
 
 def run_experiment(data_index):
-	rgb_image_path = ("../data/iros_data/rgb_frame%04d.png" % (data_index, ))
-	depth_image_path = ("../data/iros_data/depth_frame%04d.png" % (data_index,))
-	info_file_path = ("../data/iros_data/apriltag_info_%04d.txt" % (data_index,))
+	rgb_image_path = ("../data/iros_data2/rgb_frame%04d.png" % (data_index, ))
+	depth_image_path = ("../data/iros_data2/depth_frame%04d.png" % (data_index,))
+	info_file_path = ("../data/iros_data2/apriltag_info_%04d.txt" % (data_index,))
 	rgb_image = cv2.imread(rgb_image_path)
 	depth_image = cv2.imread(depth_image_path, cv2.IMREAD_ANYDEPTH)
 	info_file = info_file_path
@@ -227,37 +228,38 @@ def run_experiment(data_index):
 		test_tvec_difference = np.linalg.norm(ntvec - gt_tvec)
 		test_diff = test_diff + [[test_rvec_difference, test_tvec_difference]]
 
+
 	bins_define = np.arange(0,180, 1)
 	baseline_diff = np.array(baseline_diff)
 	baseline_rot = baseline_diff[:, 0]
-	f, axarr = plt.subplots(2, sharex=True, sharey=True)
-	axarr[0].hist(baseline_rot, bins_define, normed = 1, facecolor='red', alpha=0.75)
-	plt.xlabel('Rotation Error')
-	plt.ylabel('Frequnecy')
-	# axarr[0].title(r'Test Histogram')
-	axarr[0].axis([0, 180, 0, 0.15])
-	axarr[0].grid(True)
 
-	test_diff = np.array(test_diff)
-	test_rot = test_diff[:,0]
-	axarr[1].hist(test_rot, bins_define, normed = 1, facecolor='blue', alpha=0.75)
-	axarr[1].axis([0, 180, 0, 0.15])
-	axarr[1].grid(True)
-	# plt.figure(2)
-	# n, bins, patches = plt.hist(test_rot, bins_define, normed = 1, facecolor='blue', alpha=0.75)
+	counter = 0
+	for current_rot in baseline_rot:
+		if current_rot > 30:
+			counter = counter + 1.0
+
+	error = counter / len(baseline_rot)
+	print "Error percentage:"
+	print error
+	# f, axarr = plt.subplots(2, sharex=True, sharey=True)
+	# axarr[0].hist(baseline_rot, bins_define, normed = 1, facecolor='red', alpha=0.75)
 	# plt.xlabel('Rotation Error')
-	# plt.ylabel('Frequecy')
-	# plt.title(r'Test Histogram')
-	# plt.axis([0, 180, 0, 0.2])
-	# plt.grid(True)
+	# plt.ylabel('Frequnecy')
+	# axarr[0].axis([0, 180, 0, 0.15])
+	# axarr[0].grid(True)
 
-	# plt.show()
-	savepath = ("../data/iros_results/result_%04d.png" % (data_index, ))
-	f.savefig(savepath)
+	# test_diff = np.array(test_diff)
+	# test_rot = test_diff[:,0]
+	# axarr[1].hist(test_rot, bins_define, normed = 1, facecolor='blue', alpha=0.75)
+	# axarr[1].axis([0, 180, 0, 0.15])
+	# axarr[1].grid(True)
+	# savepath = ("../data/iros_results/result_%04d.png" % (data_index, ))
+	# f.savefig(savepath)
+
 	return True
 
 def main():
-	for ind in range(1, 22):
+	for ind in range(0, 1):
 		run_experiment(ind)
 
 main()

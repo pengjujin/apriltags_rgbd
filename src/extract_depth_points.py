@@ -18,16 +18,16 @@ def main(args):
 	py = 273.26
 	I = np.array([fx, 0 , px, 0, fy, py, 0, 0, 1]).reshape(3,3)
 	
-	x_start = 590
-	x_end = 600
-	y_start = 256
-	y_end = 266
-	rgb_image = cv2.imread("../data/rgb_frame2.png")
-	depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
+	x_start = 544
+	x_end = 557
+	y_start = 207
+	y_end = 224
+	rgb_image = cv2.imread("../data/iros_data2/rgb_frame0000.png")
+	depth_image = cv2.imread("../data/iros_data2/depth_frame0000.png", cv2.IMREAD_ANYDEPTH)
 	april_tag_rgb = rgb_image[y_start:y_end, x_start:x_end]
 	april_tag_depth = depth_image[y_start:y_end, x_start:x_end]
-	# cv2.imshow('april_tag', april_tag_rgb)
-	# cv2.waitKey(0)
+	cv2.imshow('april_tag', april_tag_rgb)
+	cv2.waitKey(0)
 	all_pts = []
 	for i in range(x_start, x_end):
 		for j in range(y_start, y_end):
@@ -46,14 +46,14 @@ def main(args):
 
 	# For now hard code the test data x y values
 	# Generate homogenous matrix for pose 
-	x_r = 0.970358818444
-	y_r = 0.105224751742
-	z_r = 0.145592452085
-	w_r = 0.161661229068
+	x_r = 0.885966679653
+	y_r = -0.0187847792584
+	z_r = -0.459534989083
+	w_r = 0.0594791427379
 	M = tf.quaternion_matrix([w_r,x_r,y_r,z_r]) 
-	x_t = 0.290623142918
-	y_t = -0.0266687975686
-	z_t = 1.20030737138
+	x_t = 0.201772100798
+	y_t = -0.139835385971
+	z_t = 1.27532936921
 	M[0, 3] = x_t
 	M[1, 3] = y_t
 	M[2, 3] = z_t
@@ -75,10 +75,10 @@ def main(args):
 	sample_points = np.transpose(np.array(sample_points))
 	sample_points_viz = np.dot(C, sample_points)
 	sample_rgb = np.transpose(np.dot(M_d, sample_points))
-	for i in range(0, 100):
-		x_coord = sample_points_viz[0, i] / sample_points_viz[2, i]
-		y_coord = sample_points_viz[1, i] / sample_points_viz[2, i]
-		cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 5 - int(math.pow(8 * (sample_points_viz[2, i] - 1), 2)), (255, 0,0))
+	# for i in range(0, 100):
+	# 	x_coord = sample_points_viz[0, i] / sample_points_viz[2, i]
+	# 	y_coord = sample_points_viz[1, i] / sample_points_viz[2, i]
+	# 	cv2.circle(rgb_image, (int(x_coord), int(y_coord)), 5 - int(math.pow(8 * (sample_points_viz[2, i] - 1), 2)), (255, 0,0))
 	cv2.imshow('april_tag', rgb_image)
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
@@ -98,10 +98,10 @@ def main(args):
 	ax.set_xlabel('X Label')
 	ax.set_ylabel('Y Label')
 	ax.set_zlabel('Z Label')
-	ax.scatter(sample_rgb[:, 0], sample_rgb[:, 1], sample_rgb[:, 2], c='b')
+	# ax.scatter(sample_rgb[:, 0], sample_rgb[:, 1], sample_rgb[:, 2], c='b')
 	ax.scatter(samples_depth[:, 0], samples_depth[:, 1], samples_depth[:, 2], c='g')
-   	rgbplane = rgb_plane_est.mean.plot(center=np.array(rgb_center), scale= scale, color='b', ax=ax)
-	depthplane = depth_plane_est.mean.plot(center=np.array(depth_center), scale= scale, color='g', ax=ax)
+   	# rgbplane = rgb_plane_est.mean.plot(center=np.array(rgb_center), scale= scale, color='b', ax=ax)
+	# depthplane = depth_plane_est.mean.plot(center=np.array(depth_center), scale= scale, color='g', ax=ax)
 	#plt.show()
 
 	## Kalman Update stage
@@ -120,10 +120,10 @@ def main(args):
 	mean_fused = np.dot((np.dot(mean_rgb, cov_rgb_sq) + np.dot(mean_depth, cov_depth_sq)) , np.linalg.inv(cov_rgb_sq + cov_depth_sq))
 	mean_fused = mean_fused.flatten()
 	fuse_plane = plane.Plane(mean_fused[0:3], mean_fused[3])
-	fuse_plane_plot = fuse_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='b', ax=ax)
+	# fuse_plane_plot = fuse_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='b', ax=ax)
 	average_mean = (rgb_plane_est.mean.vectorize() + depth_plane_est.mean.vectorize()) / 2
 	average_plane =  plane.Plane(average_mean[0:3], average_mean[3])
-	average_plane_plot = average_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='r', ax=ax)
+	# average_plane_plot = average_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='r', ax=ax)
 	print "mean_rgb: "
 	print mean_rgb 
 	print "mean_depth: "
@@ -150,7 +150,7 @@ def main(args):
 	mean_rgb_rotated_d = np.dot(mean_rgb_rotated_r, rgb_center)
 	print np.append(mean_rgb_rotated_r, mean_rgb_rotated_d)
 	plane_rotated = plane.Plane(mean_rgb_rotated_r, mean_rgb_rotated_d)
-	plane_rotated_plot = plane_rotated.plot(center=np.array(rgb_center), scale= scale, color='r', ax=ax)
+	# plane_rotated_plot = plane_rotated.plot(center=np.array(rgb_center), scale= scale, color='r', ax=ax)
 
 	rotate_mat = np.eye(4)
 	rotate_mat[0:3, 0:3] = R
@@ -167,7 +167,7 @@ def main(args):
 	C_r = np.dot(I, Mr_d)
 	sample_points_viz_rotate = np.dot(C_r, sample_points)
 	sample_rgb_rotate = np.transpose(np.dot(Mr_d, sample_points))
-	ax.scatter(sample_rgb_rotate[:, 0], sample_rgb_rotate[:, 1], sample_rgb_rotate[:, 2], c='r')
+	# ax.scatter(sample_rgb_rotate[:, 0], sample_rgb_rotate[:, 1], sample_rgb_rotate[:, 2], c='r')
 	plt.show()
 	for i in range(0, 100):
 		x_coord = sample_points_viz_rotate[0, i] / sample_points_viz_rotate[2, i]
