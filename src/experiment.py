@@ -84,9 +84,10 @@ def quatAngleDiff(rot1, rot2):
 	return math.degrees(dtheta) 
 
 def run_experiment(data_index):
-	rgb_image_path = ("../data/iros_data2/rgb_frame%04d.png" % (data_index, ))
-	depth_image_path = ("../data/iros_data2/depth_frame%04d.png" % (data_index,))
-	info_file_path = ("../data/iros_data2/apriltag_info_%04d.txt" % (data_index,))
+	print ("----------- Begin Exp:" + str(data_index))
+	rgb_image_path = ("../data/iros_data4/rgb_frame%04d.png" % (data_index, ))
+	depth_image_path = ("../data/iros_data4/depth_frame%04d.png" % (data_index,))
+	info_file_path = ("../data/iros_data4/apriltag_info_%04d.txt" % (data_index,))
 	rgb_image = cv2.imread(rgb_image_path)
 	depth_image = cv2.imread(depth_image_path, cv2.IMREAD_ANYDEPTH)
 	info_file = info_file_path
@@ -217,7 +218,7 @@ def run_experiment(data_index):
 	n = 4
 	for k in range(sample_size):
 		modified_img_pts = image_pts
-		normal_noise = np.random.normal(0, 0.5, 8).reshape(4,2)
+		normal_noise = np.random.normal(0, 1, 8).reshape(4,2)
 		modified_img_pts = modified_img_pts + normal_noise
 		retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, modified_img_pts, mtx, dist, flags=cv2.ITERATIVE)
 		baseline_rvec_difference = lm.quatAngleDiff(cv2rvec, gt_rvec)
@@ -232,7 +233,8 @@ def run_experiment(data_index):
 	bins_define = np.arange(0,180, 1)
 	baseline_diff = np.array(baseline_diff)
 	baseline_rot = baseline_diff[:, 0]
-
+	test_diff = np.array(test_diff)
+	test_rot = test_diff[:,0]
 	counter = 0
 	for current_rot in baseline_rot:
 		if current_rot > 30:
@@ -248,18 +250,21 @@ def run_experiment(data_index):
 	# axarr[0].axis([0, 180, 0, 0.15])
 	# axarr[0].grid(True)
 
-	# test_diff = np.array(test_diff)
-	# test_rot = test_diff[:,0]
+
 	# axarr[1].hist(test_rot, bins_define, normed = 1, facecolor='blue', alpha=0.75)
 	# axarr[1].axis([0, 180, 0, 0.15])
 	# axarr[1].grid(True)
 	# savepath = ("../data/iros_results/result_%04d.png" % (data_index, ))
 	# f.savefig(savepath)
-
-	return True
+	return error	
+	# return True
 
 def main():
-	for ind in range(0, 1):
-		run_experiment(ind)
+	all_error = []
+	for ind in range(6, 18):
+		current_error = run_experiment(ind)
+		all_error = all_error + [current_error]
+
+	print all_error
 
 main()
