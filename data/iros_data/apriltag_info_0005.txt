@@ -1,28 +1,28 @@
 
 			detection_id: 0 
 			point1:
-			corner_x: 488.5 
-			corner_y: 262.5
+			corner_x: 497.5 
+			corner_y: 254.5
 			corner_z: 1.0
 			point2:
-			corner_x: 506.5 
-			corner_y: 257.5
+			corner_x: 518.5 
+			corner_y: 251.5
 			corner_z: 1.0
 			point3:
-			corner_x: 507.5 
-			corner_y: 234.5
+			corner_x: 519.5 
+			corner_y: 229.5
 			corner_z: 1.0
 			point4:
-			corner_x: 488.5 
-			corner_y: 239.5
+			corner_x: 498.5 
+			corner_y: 232.5
 			corner_z: 1.0
 
 			tag_size: 0.0480000004172
-			position_x: 0.0610138319137
-			position_y: -0.0485676993178
-			position_z: 1.04262885174
-			rotation_x: 0.929111644722
-			rotation_y: -0.0626949077664
-			rotation_z: 0.314233124892
-			rotation_w: -0.184603476139
+			position_x: 0.0851587551848
+			position_y: -0.0635574835246
+			position_z: 1.08026949503
+			rotation_x: 0.958160454124
+			rotation_y: -0.0360493572446
+			rotation_z: 0.192065921416
+			rotation_w: -0.209140311335
 			
