@@ -13,3 +13,4 @@ scatter(x, baseline_0_5, 'MarkerFaceColor', [0 1 0]);
 ax = subplot(3, 1, 3);
 scatter(x, baseline_1_0, 'MarkerFaceColor', [0 0 1]);
 
+[0.221, 0.306, 0.323, 0.337, 0.474, 0.205, 0.388, 0.499, 0.261, 0.625, 0.393, 0.508, 0.456]
