@@ -26,10 +26,24 @@ from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchro
 from cv_bridge import CvBridge, CvBridgeError
 
 
+# TODO: Remove hardcode
+# Experiment Parameters
+# mtx = Camera Matrix
+# dist = Camera distortion
+# tag_size = Apriltag size
+# tag_radius = Apriltag size / 2
+MTX = np.array([1078.578826404335, 0.0, 959.8136576469886, 0.0, 1078.9620428822643, 528.997658280927, 0.0, 0.0, 1.0]).reshape(3,3)
+DIST = np.array([0.09581801408471438, -0.17355242497569437, -0.002099527275158767, -0.0002485026755700764, 0.08403352203200236]).reshape((5,1))
+TAG_SIZE = 0.06925
+TAG_RADIUS = TAG_SIZE / 2.0
+
 class ApriltagsRgbdNode():
     def __init__(self):
         rospy.init_node("apriltags_rgbd")
         self.rate = rospy.Rate(10) # 10 Hz
+
+        # CV bridge
+        self.bridge = CvBridge()
 
         # Subscribers
         tss = ApproximateTimeSynchronizer([
@@ -43,6 +57,8 @@ class ApriltagsRgbdNode():
         self.rgb_data = None
         self.depth_data = None
         self.tag_data = None
+
+        self.new_data = False
 
         # cfg_param = rospy.get_param("~apriltags_rbgd_config")
         # self.config = self.parseConfig(cfg_param)
@@ -59,6 +75,7 @@ class ApriltagsRgbdNode():
         self.rgb_data = rgb_data
         self.depth_data = depth_data
         self.tag_data = tag_data
+        self.new_data = True
 
         # print("here")
         # # print(self.camera_info)
@@ -90,15 +107,52 @@ class ApriltagsRgbdNode():
 
     def run(self):
         while not rospy.is_shutdown():
+            # Check for new data
+            if not self.new_data:
+                self.rate.sleep()
+                continue
 
-            # Estimate pose
-            nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, mtx, dist, 0)
-        	print("Test rvec:")
-        	print(nrvec)
-        	print("Test tvec:")
-        	print(ntvec)
+            self.new_data = False
+
+            # Convert ROS images to OpenCV frames
+            try:
+                rgb_image = self.bridge.imgmsg_to_cv2(self.rgb_data, "bgr8")
+                depth_image = self.bridge.imgmsg_to_cv2(self.depth_data, "16UC1")
+            except CvBridgeError as e:
+                print(e)
+                continue
+
+            # Estimate pose of each tag
+            for tag in self.tag_data.apriltags:
+                object_pts, image_pts = self.parseTag(tag)
+
+                # Estimate pose
+                nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image,
+                    object_pts, image_pts, MTX, DIST, 0)
+                print("Test rvec:")
+                print(nrvec)
+                print("Test tvec:")
+                print(ntvec)
 
             self.rate.sleep()
+
+    def parseTag(self, tag):
+        ob_pt0 = [-TAG_RADIUS, -TAG_RADIUS, 0.0]
+        ob_pt1 = [ TAG_RADIUS, -TAG_RADIUS, 0.0]
+        ob_pt2 = [ TAG_RADIUS,  TAG_RADIUS, 0.0]
+        ob_pt3 = [-TAG_RADIUS,  TAG_RADIUS, 0.0]
+        ob_pts = ob_pt0 + ob_pt1 + ob_pt2 + ob_pt3
+        object_pts = np.array(ob_pts).reshape(4,3)
+
+        im_pt0 = [tag.corners[0].x, tag.corners[0].y]
+        im_pt1 = [tag.corners[1].x, tag.corners[1].y]
+        im_pt2 = [tag.corners[2].x, tag.corners[2].y]
+        im_pt3 = [tag.corners[3].x, tag.corners[3].y]
+
+        im_pts = im_pt0 + im_pt1 + im_pt2 + im_pt3
+        image_pts = np.array(im_pts).reshape(4,2)
+
+        return object_pts, image_pts
 
 if __name__ == '__main__':
     node = ApriltagsRgbdNode()
