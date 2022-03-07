@@ -18,12 +18,13 @@ import rgb_depth_fuse as fuse
 # ROS Imports
 import rospy
 import tf2_ros
-from geometry_msgs.msg import Transform, Vector3
+from geometry_msgs.msg import TransformStamped, Vector3, Quaternion
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Image, CameraInfo
 from apriltag_msgs.msg import ApriltagArrayStamped
 from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
 from cv_bridge import CvBridge, CvBridgeError
+import tf_conversions
 
 
 # TODO: Remove hardcode
@@ -37,6 +38,7 @@ DIST = np.array([0.09581801408471438, -0.17355242497569437, -0.00209952727515876
 TAG_SIZE = 0.06925
 TAG_RADIUS = TAG_SIZE / 2.0
 
+TAG_PREFIX = "detected_"
 class ApriltagsRgbdNode():
     def __init__(self):
         rospy.init_node("apriltags_rgbd")
@@ -59,6 +61,12 @@ class ApriltagsRgbdNode():
         self.tag_data = None
 
         self.new_data = False
+
+        # ROS tf
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+
 
         # cfg_param = rospy.get_param("~apriltags_rbgd_config")
         # self.config = self.parseConfig(cfg_param)
@@ -122,9 +130,12 @@ class ApriltagsRgbdNode():
                 print(e)
                 continue
 
+            # Extract metadata
+            header = self.camera_info_data.header
+
             # Estimate pose of each tag
             for tag in self.tag_data.apriltags:
-                object_pts, image_pts = self.parseTag(tag)
+                tag_id, object_pts, image_pts = self.parseTag(tag)
 
                 # Estimate pose
                 nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image,
@@ -134,9 +145,15 @@ class ApriltagsRgbdNode():
                 print("Test tvec:")
                 print(ntvec)
 
+                # Update tf tree
+                output_tf = self.composeTfMsg(ntvec, nrvec, header, tag_id)
+                self.tf_broadcaster.sendTransform(output_tf)
+
             self.rate.sleep()
 
     def parseTag(self, tag):
+        id = tag.id
+
         ob_pt0 = [-TAG_RADIUS, -TAG_RADIUS, 0.0]
         ob_pt1 = [ TAG_RADIUS, -TAG_RADIUS, 0.0]
         ob_pt2 = [ TAG_RADIUS,  TAG_RADIUS, 0.0]
@@ -152,7 +169,24 @@ class ApriltagsRgbdNode():
         im_pts = im_pt0 + im_pt1 + im_pt2 + im_pt3
         image_pts = np.array(im_pts).reshape(4,2)
 
-        return object_pts, image_pts
+        return id, object_pts, image_pts
+
+    def composeTfMsg(self, trans, rot, header, tag_id):
+        output_tf = TransformStamped()
+
+        # Update header info
+        output_tf.header = header
+        output_tf.child_frame_id = TAG_PREFIX + str(tag_id)
+
+        # Populate translation info
+        output_tf.transform.translation = Vector3(*trans)
+
+        # Populate rotation info
+        q = tf_conversions.transformations.quaternion_from_euler(*rot)
+        output_tf.transform.rotation = Quaternion(*q)
+
+        print(output_tf)
+        return output_tf
 
 if __name__ == '__main__':
     node = ApriltagsRgbdNode()
