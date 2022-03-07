@@ -130,7 +130,7 @@ def test_synthetic():
     # print "Actual plane:", plane_act
     # print "Estimated plane:", plane_est
     # plane_est.plot(10)
-    print "3D TEST"
+    print("3D TEST")
     plane_act = Plane(np.random.rand(3), np.random.rand(1))
     samples = plane_act.sample(200)
     cov = np.asarray([sample_cov] * samples.shape[0])

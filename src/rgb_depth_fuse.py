@@ -68,8 +68,9 @@ def getDepthPoints(image_pts, depth_plane_est, depth_image, K):
 	n = depth_plane_est.mean.n
 	d = depth_plane_est.mean.d
 	for i in range(dim[0]):
-		x = image_pts[i, 0]
-		y = image_pts[i, 1]
+		x = int(image_pts[i, 0])
+		y = int(image_pts[i, 1])
+		# print(x)
 		depth = depth_image[y, x] / 1000.0 + 0.00001
 		if(depth != 0):
 			X = (x - px) * depth / fx
@@ -83,14 +84,14 @@ def computeExtrinsics(object_pts, image_pts, depth_points, K, D, verbose=0):
 
 	rdepth, tdepth = trans.rigid_transform_3D(object_pts, depth_points)
 	if(verbose > 0):
-		print rdepth
-		print tdepth
+		print(rdepth)
+		print(tdepth)
 
 	depthH = np.eye(4)
 	depthH[0:3, 0:3] = rdepth
 	depthH[0:3, 3:4] = tdepth.reshape(3,1)
 	if(verbose > 0):
-		print depthH
+		print(depthH)
 
 	rvec_init, jacob = cv2.Rodrigues(rdepth)
 	tvec_init = tdepth.reshape(3,1)
@@ -138,7 +139,7 @@ def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose =
 # 	print ntvec
 
 # 	retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, image_pts, K, D, flags=cv2.ITERATIVE)
-	
+
 # 	print("CV2 rev:")
 # 	print cv2rvec
 # 	print("CV2 tvec:")
@@ -155,7 +156,7 @@ def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose =
 
 # 	##### Experiement 1
 # 	all_diff = []
-# 	n = 4 #number of points 
+# 	n = 4 #number of points
 # 	for i in range(n):
 # 		for j in range(2):
 # 			for k in range(2):
@@ -178,16 +179,16 @@ def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose =
 # 	##### Experiement 2
 # 	all_diff = []
 # 	sample_size = 1000
-# 	n = 4 #number of points 
+# 	n = 4 #number of points
 # 	for k in range(sample_size):
 # 		modified_img_pts = image_pts
 # 		normal_noise = np.random.normal(0, 0.6, 8).reshape(4,2)
-# 		modified_img_pts = modified_img_pts + normal_noise		
+# 		modified_img_pts = modified_img_pts + normal_noise
 # 		retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, modified_img_pts, K, D, flags=cv2.ITERATIVE)
 # 		rot_difference = lm.quatAngleDiff(cv2rvec, gt_rvec)
 # 		trans_difference = np.linalg.norm(cv2tvec - gt_tvec)
 # 		all_diff = all_diff + [[rot_difference, trans_difference]]
-	
+
 # 	all_diff = np.array(all_diff)
 # 	print "Experiement 2 result:"
 # 	print all_diff
@@ -196,23 +197,23 @@ def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose =
 # 	bad_count = 0
 # 	for i in range(sample_size):
 # 		if(RotationalErrors[i] > 50):
-# 			bad_count = bad_count + 1 
+# 			bad_count = bad_count + 1
 # 	print bad_count
 # 	# print RotationalErrors
 
 # 	##### Experiment 3
 # 	all_diff = []
 # 	sample_size = 1000
-# 	n = 4 #number of points 
+# 	n = 4 #number of points
 # 	for k in range(sample_size):
 # 		modified_img_pts = image_pts
 # 		normal_noise = np.random.normal(0, 0.6, 8).reshape(4,2)
-# 		modified_img_pts = modified_img_pts + normal_noise		
+# 		modified_img_pts = modified_img_pts + normal_noise
 # 		nrvec, ntvec = solvePnP_RGBD(rgb_image, depth_image, object_pts, modified_img_pts, K, D, 0)
 # 		rot_difference = lm.quatAngleDiff(nrvec, gt_rvec)
 # 		trans_difference = np.linalg.norm(ntvec - gt_tvec)
 # 		all_diff = all_diff + [[rot_difference, trans_difference]]
-	
+
 # 	all_diff = np.array(all_diff)
 # 	print "Experiement 3 result:"
 # 	print all_diff
@@ -221,7 +222,7 @@ def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose =
 # 	bad_count = 0
 # 	for i in range(sample_size):
 # 		if(RotationalErrors[i] > 50):
-# 			bad_count = bad_count + 1 
+# 			bad_count = bad_count + 1
 # 	print bad_count
 
 # 	##### Experiment 4

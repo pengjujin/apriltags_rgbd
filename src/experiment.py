@@ -1,10 +1,10 @@
 import numpy as np
 import cv2
-import glob 
+import glob
 import transformation as tf
-import math 
-import rgb_depth_fuse as fuse 
-import LM_minimize as lm 
+import math
+import rgb_depth_fuse as fuse
+import LM_minimize as lm
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import parse
@@ -15,9 +15,9 @@ import parse
 # square_size = Chessboard square size
 # tag_size = Apriltag size
 # tag_radius = Apriltag size / 2
-mtx = np.array([529.2945, 0.0, 466.9604, 0.0, 531.2834, 273.25937, 0, 0, 1]).reshape(3,3) 
+mtx = np.array([529.2945, 0.0, 466.9604, 0.0, 531.2834, 273.25937, 0, 0, 1]).reshape(3,3)
 dist = np.zeros((5,1))
-square_size = 0.047  
+square_size = 0.047
 tag_size = 0.0480000004172
 tag_radius = tag_size / 2.0
 
@@ -25,21 +25,21 @@ def info_parser(info_file):
 	f = open(info_file, 'r')
 	all_file = f.read()
 	format_string = '''
-			detection_id: {0} 
+			detection_id: {0}
 			point1:
-			corner_x: {1} 
+			corner_x: {1}
 			corner_y: {2}
 			corner_z: {3}
 			point2:
-			corner_x: {4} 
+			corner_x: {4}
 			corner_y: {5}
 			corner_z: {6}
 			point3:
-			corner_x: {7} 
+			corner_x: {7}
 			corner_y: {8}
 			corner_z: {9}
 			point4:
-			corner_x: {10} 
+			corner_x: {10}
 			corner_y: {11}
 			corner_z: {12}
 
@@ -81,10 +81,10 @@ def quatAngleDiff(rot1, rot2):
 	quat2 = tf.quaternion_from_matrix(rot2)
 
 	dtheta = math.acos(2*(np.dot(quat1, quat2)**2)-1)
-	return math.degrees(dtheta) 
+	return math.degrees(dtheta)
 
 def run_experiment(data_index):
-	print ("----------- Begin Exp:" + str(data_index))
+	print(("----------- Begin Exp:" + str(data_index)))
 	rgb_image_path = ("../data/iros_data4/rgb_frame%04d.png" % (data_index, ))
 	depth_image_path = ("../data/iros_data4/depth_frame%04d.png" % (data_index,))
 	info_file_path = ("../data/iros_data4/apriltag_info_%04d.txt" % (data_index,))
@@ -93,7 +93,7 @@ def run_experiment(data_index):
 	info_file = info_file_path
 
 
-	# Getting Apriltag groundtruth information from the chessboard 
+	# Getting Apriltag groundtruth information from the chessboard
 	info_array = info_parser(info_file)
 	corner1 = [float(info_array[1]), float(info_array[2])]
 	corner2 = [float(info_array[4]), float(info_array[5])]
@@ -118,10 +118,10 @@ def run_experiment(data_index):
 
 	gray = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
 	ret, corners = cv2.findChessboardCorners(gray, (4,3), None)
-	print ret
+	print(ret)
 	if ret == True:
 		corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1, -1), criteria)
-		rvecs, tvecs, inliers = cv2.solvePnPRansac(objp, corners, mtx, dist)
+		_, rvecs, tvecs, inliers = cv2.solvePnPRansac(objp, corners, mtx, dist)
 		imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist)
 		rgb_image = draw(rgb_image, corners, imgpts)
 		board_h = cv2hom(rvecs, tvecs) # The pose of the board
@@ -132,22 +132,22 @@ def run_experiment(data_index):
 		aptag_h[0:3][:, 3] = aptag_offset.reshape(3)
 		aptag_h[0:3][:, 0:3] = np.array([1, 0, 0, 0, -1, 0,0,0,-1]).reshape(3,3) # Orientation offset
 		groundtruth_h = np.dot(board_h, aptag_h) # The pose of the tag measured from the board
-		print "Groundtruth H:"
-		print groundtruth_h
+		print("Groundtruth H:")
+		print(groundtruth_h)
 		gt_rvec, _ = cv2.Rodrigues(groundtruth_h[0:3][:,0:3])
 		gt_tvec = groundtruth_h[0:3][:,3].reshape(3,1)
-		
+
 
 		exp_rmat = tf.quaternion_matrix([rw, rx, ry, rz])
 		exp_h = exp_rmat
 		exp_rvec, _ = cv2.Rodrigues(exp_h[0:3][:, 0:3])
 		exp_tvec = np.array([px, py, pz]).reshape(3)
 		exp_h[0:3][:, 3] = exp_tvec #The pose of the tag measured from the Rosnode
-		print "Experimental H:"
-		print exp_h
+		print("Experimental H:")
+		print(exp_h)
 
 		angle_diff = quatAngleDiff(groundtruth_h[0:3][:,0:3], exp_h[0:3][:, 0:3])
-		print angle_diff
+		print(angle_diff)
 
 		origin_point = np.float32([[0,0,0]])
 		origin_pt, _ = cv2.projectPoints(origin_point, gt_rvec, gt_tvec, mtx, dist)
@@ -163,8 +163,8 @@ def run_experiment(data_index):
 	else:
 		print("Cannot localize using Chessboard")
 		return False
-	#### Experiment 
-	print corner1
+	#### Experiment
+	print(corner1)
 	im_pt1 = corner1
 	im_pt2 = corner2
 	im_pt3 = corner3
@@ -179,39 +179,39 @@ def run_experiment(data_index):
 	ob_pts = ob_pt1 + ob_pt2 + ob_pt3 + ob_pt4
 	object_pts = np.array(ob_pts).reshape(4,3)
 
-	retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, image_pts, mtx, dist, flags=cv2.ITERATIVE)
+	retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, image_pts, mtx, dist, flags=cv2.SOLVEPNP_ITERATIVE)
 
 	################# Baseline ###########################
-	print "----------- Basic Test ----------------"
+	print("----------- Basic Test ----------------")
 	print("Baseline rvec:")
-	print cv2rvec
+	print(cv2rvec)
 	print("Baseline tvec:")
-	print cv2tvec
+	print(cv2tvec)
 
 	nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, mtx, dist, 0)
 	print("Test rvec:")
-	print nrvec
+	print(nrvec)
 	print("Test tvec:")
-	print ntvec
+	print(ntvec)
 
 	rot_difference = lm.quatAngleDiff(cv2rvec, gt_rvec)
 	print("Baseline Rotational Difference:")
-	print rot_difference
+	print(rot_difference)
 
 	trans_difference = np.linalg.norm(cv2tvec - gt_tvec)
 	print("Baseline Translation Difference:")
-	print trans_difference
+	print(trans_difference)
 
 	rot_difference = lm.quatAngleDiff(nrvec, gt_rvec)
 	print("Baseline Rotational Difference:")
-	print rot_difference
+	print(rot_difference)
 
 	trans_difference = np.linalg.norm(ntvec - gt_tvec)
 	print("Baseline Translation Difference:")
-	print trans_difference
+	print(trans_difference)
 
 	################ Experiment 1 ########################
-	print "----------- 0.5 Noise ----------------"
+	print("----------- 0.5 Noise ----------------")
 	baseline_diff = []
 	test_diff = []
 	sample_size = 1000
@@ -220,7 +220,7 @@ def run_experiment(data_index):
 		modified_img_pts = image_pts
 		normal_noise = np.random.normal(0, 1, 8).reshape(4,2)
 		modified_img_pts = modified_img_pts + normal_noise
-		retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, modified_img_pts, mtx, dist, flags=cv2.ITERATIVE)
+		retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, modified_img_pts, mtx, dist, flags=cv2.SOLVEPNP_ITERATIVE)
 		baseline_rvec_difference = lm.quatAngleDiff(cv2rvec, gt_rvec)
 		baseline_tvec_difference = np.linalg.norm(cv2tvec - gt_tvec)
 		baseline_diff = baseline_diff + [[baseline_rvec_difference, baseline_tvec_difference]]
@@ -241,8 +241,8 @@ def run_experiment(data_index):
 			counter = counter + 1.0
 
 	error = counter / len(baseline_rot)
-	print "Error percentage:"
-	print error
+	print("Error percentage:")
+	print(error)
 	# f, axarr = plt.subplots(2, sharex=True, sharey=True)
 	# axarr[0].hist(baseline_rot, bins_define, normed = 1, facecolor='red', alpha=0.75)
 	# plt.xlabel('Rotation Error')
@@ -256,7 +256,7 @@ def run_experiment(data_index):
 	# axarr[1].grid(True)
 	# savepath = ("../data/iros_results/result_%04d.png" % (data_index, ))
 	# f.savefig(savepath)
-	return error	
+	return error
 	# return True
 
 def main():
@@ -265,6 +265,6 @@ def main():
 		current_error = run_experiment(ind)
 		all_error = all_error + [current_error]
 
-	print all_error
+	print(all_error)
 
 main()

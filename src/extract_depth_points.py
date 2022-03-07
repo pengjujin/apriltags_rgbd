@@ -34,13 +34,13 @@ def main(args):
 			depth = depth_image[j,i] / 1000.0
 			if(depth != 0):
 				x = (i - px) * depth / fx
-				print x
+				print(x)
 				y = (j - py) * depth / fy
 				all_pts.append([x,y,depth])
 	sample_cov = 0.9
 	samples_depth = np.array(all_pts)
-	print "Sample points from the depth sensor"
-	print samples_depth[0:5, :]
+	print("Sample points from the depth sensor")
+	print(samples_depth[0:5, :])
 	cov = np.asarray([sample_cov] * samples_depth.shape[0])
 	depth_plane_est = bayesplane.fit_plane_bayes(samples_depth, cov)
 
@@ -58,8 +58,8 @@ def main(args):
 	M[1, 3] = y_t
 	M[2, 3] = z_t
 	M_d = np.delete(M, 3, 0)
-	print "Extrinsics"
-	print M # pose extrinsics
+	print("Extrinsics")
+	print(M) # pose extrinsics
 	origin = np.array([0,0,0,1])
 	np.transpose(origin)
 	C = np.dot(I, M_d)
@@ -82,8 +82,8 @@ def main(args):
 	cv2.imshow('april_tag', rgb_image)
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
-	print "Sample points from the RGB sensor"
-	print  sample_rgb[0:5, :]
+	print("Sample points from the RGB sensor")
+	print(sample_rgb[0:5, :])
 	cov = np.asarray([0.9] * sample_rgb.shape[0])
 	rgb_plane_est = bayesplane.fit_plane_bayes(sample_rgb, cov)
 	
@@ -91,8 +91,8 @@ def main(args):
 	depth_center = samples_depth[50, :]
 	scale = 0.01
 	## Plotting for visual effects
-	print "rgb_plane_est cov: "
-	print rgb_plane_est.cov
+	print("rgb_plane_est cov: ")
+	print(rgb_plane_est.cov)
 	fig = plt.figure()
 	ax = fig.add_subplot(111, projection='3d')
 	ax.set_xlabel('X Label')
@@ -109,10 +109,10 @@ def main(args):
 	mean_depth = depth_plane_est.mean.vectorize()[:, np.newaxis].T
 	#cov_rgb = rgb_plane_est.cov
 	#cov_depth = depth_plane_est.cov
-	print "cov_depth: "
-	print depth_plane_est.cov
-	print "cov_rgb: "
-	print rgb_plane_est.cov
+	print("cov_depth: ")
+	print(depth_plane_est.cov)
+	print("cov_rgb: ")
+	print(rgb_plane_est.cov)
 	cov_rgb = np.eye(4)
 	cov_depth = np.eye(4)
 	cov_rgb_sq = np.dot(cov_rgb.T, cov_rgb)
@@ -124,13 +124,13 @@ def main(args):
 	average_mean = (rgb_plane_est.mean.vectorize() + depth_plane_est.mean.vectorize()) / 2
 	average_plane =  plane.Plane(average_mean[0:3], average_mean[3])
 	# average_plane_plot = average_plane.plot(center=np.array([0.26, -0.03, 1.16]), scale= scale, color='r', ax=ax)
-	print "mean_rgb: "
-	print mean_rgb 
-	print "mean_depth: "
-	print mean_depth
-	print "mean_fused: "
-	print mean_fused / np.linalg.norm(mean_fused)
-	print average_mean / np.linalg.norm(average_mean)
+	print("mean_rgb: ")
+	print(mean_rgb) 
+	print("mean_depth: ")
+	print(mean_depth)
+	print("mean_fused: ")
+	print(mean_fused / np.linalg.norm(mean_fused))
+	print(average_mean / np.linalg.norm(average_mean))
 
 
 	vector_rgb = rgb_plane_est.mean.vectorize()[0:3]
@@ -143,12 +143,12 @@ def main(args):
 							   [-vector_cross[1], vector_cross[0], 0]])
 	vector_eye = np.eye(3)
 	R = vector_eye + vector_skew + np.linalg.matrix_power(vector_skew, 2) * (1 - vector_cos) / (vector_sin * vector_sin)
-	print R
+	print(R)
 	mean_rgb_rotated = rgb_plane_est.mean.vectorize()[0 : 3, np.newaxis]
 	mean_rgb_rotated = np.dot(R, mean_rgb_rotated)
 	mean_rgb_rotated_r = mean_rgb_rotated.flatten()
 	mean_rgb_rotated_d = np.dot(mean_rgb_rotated_r, rgb_center)
-	print np.append(mean_rgb_rotated_r, mean_rgb_rotated_d)
+	print(np.append(mean_rgb_rotated_r, mean_rgb_rotated_d))
 	plane_rotated = plane.Plane(mean_rgb_rotated_r, mean_rgb_rotated_d)
 	# plane_rotated_plot = plane_rotated.plot(center=np.array(rgb_center), scale= scale, color='r', ax=ax)
 
@@ -159,8 +159,8 @@ def main(args):
 	add_center = np.eye(4)
 	add_center[0:3, 3] = rgb_center.T
 	post_rotate = np.dot(add_center, np.dot(rotate_mat, sub_center))
-	print "post rotate"
-	print post_rotate 
+	print("post rotate")
+	print(post_rotate) 
 	M_r = np.dot(post_rotate, M)
 
 	Mr_d = np.delete(M_r, 3, 0)

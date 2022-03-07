@@ -45,7 +45,7 @@ class image_capture:
 			self.key_press()
 
 	def key_press(self):
-		print ("saving data %04d" % (self.counter, ))
+		print(("saving data %04d" % (self.counter, )))
 		cv2.imwrite((self.rgb_filepath % (self.counter,)), self.rgb_image)
 		cv2.imwrite((self.depth_filepath % (self.counter,)), self.depth_image)
 		temppath = self.tag_filepath % (self.counter, ) 

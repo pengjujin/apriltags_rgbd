@@ -12,8 +12,8 @@ import math
 import LM_minimize as lm
 import rigid_transform as rtrans
 def print_att(att, mat):
-	print att + ":"
-	print mat
+	print(att + ":")
+	print(mat)
 
 def normal_transfomation(init_normal, goal_normal):
 	vector_init = init_normal
@@ -32,7 +32,7 @@ def normal_transfomation(init_normal, goal_normal):
 
 def plot_vector(vector, ax):
 	soa =np.array( [vector]) 
-	X,Y,Z,U,V,W = zip(*soa)
+	X,Y,Z,U,V,W = list(zip(*soa))
 	# print_att("x", X)
 	ax.quiver(X,Y,Z,U,V,W, length = 1)
 
@@ -158,10 +158,10 @@ def main(args):
 	# print_att("object_pts", object_pts)
 	# print_att("image_pts", image_pts)
 	retval, rvec, tvec = cv2.solvePnP(object_pts, image_pts, I, D, flags=cv2.ITERATIVE)
-	print "cv2 rvec:"
-	print rvec
-	print "cv2 tvec:"
-	print tvec
+	print("cv2 rvec:")
+	print(rvec)
+	print("cv2 tvec:")
+	print(tvec)
 	cv2rvec = rvec
 	rotM = cv2.Rodrigues(rvec)[0]
 	camera_extrinsics = np.eye(4)
@@ -253,12 +253,12 @@ def main(args):
 	print_att('object_pts', object_pts)
 	print_att('depth_pts', depth_points)
 	Rdepth, t_depth = rtrans.rigid_transform_3D(object_pts, depth_points)
-	print Rdepth
-	print t_depth
+	print(Rdepth)
+	print(t_depth)
 	depthH = np.eye(4)
 	depthH[0:3, 0:3] = Rdepth
 	depthH[0:3, 3:4] = t_depth.reshape(3,1)
-	print depthH
+	print(depthH)
 	result_pt1 = np.dot(depthH, test_ob_point1.reshape(4,1))
 	result_pt2 = np.dot(depthH, test_ob_point2.reshape(4,1))
 	result_pt3 = np.dot(depthH, test_ob_point3.reshape(4,1))

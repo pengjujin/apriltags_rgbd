@@ -50,7 +50,7 @@ for i in range(4):
 	y = int(image_pts[i][0][1])
 	cv2.circle(empty_image, (x,y), 3, (0,0,255), -1)
 image_pts = image_pts.reshape(4,2)
-print image_pts
+print(image_pts)
 
 cv2.namedWindow('img', 1)
 cv2.imshow('img', empty_image)
@@ -95,4 +95,4 @@ for i in np.arange(0, 90, 1):
 	error = simulate_projection(i, 0.8)
 	all_error.append(error)
 
-print all_error
+print(all_error)

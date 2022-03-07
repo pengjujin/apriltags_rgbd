@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #<examples/doc_withreport.py>
 
-from __future__ import print_function
+
 from lmfit import Parameters, minimize, fit_report
 from numpy import random, linspace, pi, exp, sin, sign
 import matplotlib.pyplot as plt

@@ -84,7 +84,7 @@ def quatAngleDiff(rot1, rot2):
 	return math.degrees(dtheta) 
 
 def run_experiment(data_index):
-	print ("----------- Begin Exp:" + str(data_index))
+	print(("----------- Begin Exp:" + str(data_index)))
 	rgb_image_path = ("../data/iros_data2/rgb_frame%04d.png" % (data_index, ))
 	depth_image_path = ("../data/iros_data2/depth_frame%04d.png" % (data_index,))
 	info_file_path = ("../data/iros_data2/apriltag_info_%04d.txt" % (data_index,))
@@ -118,7 +118,7 @@ def run_experiment(data_index):
 
 	gray = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
 	ret, corners = cv2.findChessboardCorners(gray, (4,3), None)
-	print ret
+	print(ret)
 	if ret == True:
 		corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1, -1), criteria)
 		rvecs, tvecs, inliers = cv2.solvePnPRansac(objp, corners, mtx, dist)
@@ -132,8 +132,8 @@ def run_experiment(data_index):
 		aptag_h[0:3][:, 3] = aptag_offset.reshape(3)
 		aptag_h[0:3][:, 0:3] = np.array([1, 0, 0, 0, -1, 0,0,0,-1]).reshape(3,3) # Orientation offset
 		groundtruth_h = np.dot(board_h, aptag_h) # The pose of the tag measured from the board
-		print "Groundtruth H:"
-		print groundtruth_h
+		print("Groundtruth H:")
+		print(groundtruth_h)
 		gt_rvec, _ = cv2.Rodrigues(groundtruth_h[0:3][:,0:3])
 		gt_tvec = groundtruth_h[0:3][:,3].reshape(3,1)
 		
@@ -143,17 +143,17 @@ def run_experiment(data_index):
 		exp_rvec, _ = cv2.Rodrigues(exp_h[0:3][:, 0:3])
 		exp_tvec = np.array([px, py, pz]).reshape(3)
 		exp_h[0:3][:, 3] = exp_tvec #The pose of the tag measured from the Rosnode
-		print "Experimental H:"
-		print exp_h
+		print("Experimental H:")
+		print(exp_h)
 
 		angle_diff = quatAngleDiff(groundtruth_h[0:3][:,0:3], exp_h[0:3][:, 0:3])
-		print angle_diff
+		print(angle_diff)
 
 		origin_point = np.float32([[0,0,0]])
 		origin_pt, _ = cv2.projectPoints(origin_point, exp_rvec, exp_tvec, mtx, dist)
 		origin_pt2, _ = cv2.projectPoints(origin_point, gt_rvec, gt_tvec, mtx, dist)
-		print origin_pt
-		print origin_pt2
+		print(origin_pt)
+		print(origin_pt2)
 		x = origin_pt[0][0][0]
 		y = origin_pt[0][0][1]
 		x2 = origin_pt2[0][0][0]
@@ -169,7 +169,7 @@ def run_experiment(data_index):
 		print("Cannot localize using Chessboard")
 		return False
 	#### Experiment 
-	print corner1
+	print(corner1)
 	im_pt1 = corner1
 	im_pt2 = corner2
 	im_pt3 = corner3
@@ -187,41 +187,41 @@ def run_experiment(data_index):
 	retval, cv2rvec, cv2tvec = cv2.solvePnP(object_pts, image_pts, mtx, dist, flags=cv2.ITERATIVE)
 
 	################# Baseline ###########################
-	print "----------- Basic Test ----------------"
+	print("----------- Basic Test ----------------")
 	print("Baseline rvec:")
-	print cv2rvec
+	print(cv2rvec)
 	print("Baseline tvec:")
-	print cv2tvec
+	print(cv2tvec)
 
 	nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, mtx, dist, 0)
 	nrvec2, ntvec2 = fuse.solvePnP_D(rgb_image, depth_image, object_pts, image_pts, mtx, dist, 0)
 
 	print("Tvec RGBD:")
-	print ntvec
+	print(ntvec)
 
 	print("Tvec D:")
-	print ntvec2
+	print(ntvec2)
 
 
 	print("GroundTruth:")
-	print exp_tvec
+	print(exp_tvec)
 	test_tvec = exp_tvec.reshape(3,1)
 
 	rot_difference1 = lm.quatAngleDiff(nrvec, gt_rvec)
 	print("RGBD Rotational Difference:")
-	print rot_difference1
+	print(rot_difference1)
 
 	trans_difference1 = np.linalg.norm(ntvec - test_tvec)
 	print("RGBD Translation Difference:")
-	print trans_difference1
+	print(trans_difference1)
 
 	rot_difference2 = lm.quatAngleDiff(nrvec2, gt_rvec)
 	print("Depth Rotational Difference:")
-	print rot_difference2
+	print(rot_difference2)
 
 	trans_difference2 = np.linalg.norm(ntvec2 - test_tvec)
 	print("Depth Translation Difference:")
-	print trans_difference2
+	print(trans_difference2)
 
 	return rot_difference1, rot_difference2
 	################ Experiment 1 ########################
@@ -304,10 +304,10 @@ def main():
 		current_error1, current_error2 = run_experiment(ind)
 		all_error_base = all_error_base + [current_error1]
 		all_error_test = all_error_test + [current_error2]
-	print "----------- Averages ----------------"
-	print np.average(all_error_base)
-	print np.var(all_error_base)
-	print np.average(all_error_test)
-	print np.var(all_error_test)
+	print("----------- Averages ----------------")
+	print(np.average(all_error_base))
+	print(np.var(all_error_base))
+	print(np.average(all_error_test))
+	print(np.var(all_error_test))
 
 main()
