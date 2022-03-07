@@ -51,7 +51,7 @@ def sample_depth_plane(depth_image, image_pts, K):
 	samples_depth = np.array(all_pts)
 	cov = np.asarray([sample_cov] * samples_depth.shape[0])
 	depth_plane_est = bayesplane.fit_plane_bayes(samples_depth, cov)
-	return depth_plane_est
+	return depth_plane_est, all_pts
 
 def computeZ (n, d, x, y):
 	sum = n[0] * x + n[1] * y

@@ -26,6 +26,11 @@ from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchro
 from cv_bridge import CvBridge, CvBridgeError
 import tf_conversions
 
+# For debugging
+DEBUG = True
+from sensor_msgs.msg import PointCloud
+from geometry_msgs.msg import Point32
+
 
 # TODO: Remove hardcode
 # Experiment Parameters
@@ -37,6 +42,7 @@ MTX = np.array([1078.578826404335, 0.0, 959.8136576469886, 0.0, 1078.96204288226
 DIST = np.array([0.09581801408471438, -0.17355242497569437, -0.002099527275158767, -0.0002485026755700764, 0.08403352203200236]).reshape((5,1))
 TAG_SIZE = 0.06925
 TAG_RADIUS = TAG_SIZE / 2.0
+
 
 TAG_PREFIX = "detected_"
 class ApriltagsRgbdNode():
@@ -66,6 +72,11 @@ class ApriltagsRgbdNode():
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+
+        # Publishers
+        if DEBUG:
+            self.tag_pt_pub = rospy.Publisher("extracted_tag_pts", PointCloud, queue_size=10)
+            self.corner_pt_pub = rospy.Publisher("corner_tag_pts", PointCloud, queue_size=10)
 
 
         # cfg_param = rospy.get_param("~apriltags_rbgd_config")
@@ -133,21 +144,44 @@ class ApriltagsRgbdNode():
             # Extract metadata
             header = self.camera_info_data.header
 
+            if DEBUG:
+                tag_pts = PointCloud()
+                corner_pts = PointCloud()
+
             # Estimate pose of each tag
             for tag in self.tag_data.apriltags:
                 tag_id, object_pts, image_pts = self.parseTag(tag)
 
                 # Estimate pose
-                nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image,
-                    object_pts, image_pts, MTX, DIST, 0)
-                print("Test rvec:")
-                print(nrvec)
-                print("Test tvec:")
-                print(ntvec)
+                depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, MTX)
+                depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, MTX)
 
-                # Update tf tree
-                output_tf = self.composeTfMsg(ntvec, nrvec, header, tag_id)
-                self.tf_broadcaster.sendTransform(output_tf)
+
+                if DEBUG:
+                    tag_pts.header = header
+                    corner_pts.header = header
+
+                    for i in range(len(all_pts)):
+                        tag_pts.points.append(Point32(*all_pts[i]))
+
+                    for i in range(len(depth_points)):
+                        corner_pts.points.append(Point32(*depth_points[i]))
+
+                    self.tag_pt_pub.publish(tag_pts)
+                    self.corner_pt_pub.publish(corner_pts)
+
+
+                #
+                # nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image,
+                #     object_pts, image_pts, MTX, DIST, 0)
+                # print("Test rvec:")
+                # print(nrvec)
+                # print("Test tvec:")
+                # print(ntvec)
+                #
+                # # Update tf tree
+                # output_tf = self.composeTfMsg(ntvec, nrvec, header, tag_id)
+                # self.tf_broadcaster.sendTransform(output_tf)
 
             self.rate.sleep()
 
