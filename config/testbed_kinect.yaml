@@ -1,0 +1,317 @@
+bodies:
+ - base:
+     is_static: false
+     default_tag_size: 0.06925
+     type: simple
+     tags:
+         - id: 4
+           size: 0.06925
+           pose:
+              position:
+                x: 0.127405
+                y: 0.127405
+                z: -0.0102
+              rotation:
+                x: 0
+                y: 0
+                z: 0
+
+        # Floor tags
+         - id: 1
+           size: 0.06925
+           pose:
+              position:
+                x: 0.61595
+                y: 0.11811
+                z: -0.323088
+              rotation:
+                x: 0
+                y: 0
+                z: 0
+
+         - id: 0
+           size: 0.06925
+           pose:
+              position:
+                x: 0.81915
+                y: 0.11811
+                z: -0.323088
+              rotation:
+                x: 0
+                y: 0
+                z: 0
+
+         - id: 3
+           size: 0.06925
+           pose:
+              position:
+                x: 1.09855
+                y: 0.62611
+                z: -0.38735
+              rotation:
+                x: 0
+                y: 0
+                z: 0
+
+         - id: 2
+           size: 0.06925
+           pose:
+              position:
+                x: 1.35255
+                y: 0.37211
+                z: -0.38735
+              rotation:
+                x: 0
+                y: 0
+                z: 0
+
+# Small pushcore
+ # - tagslam_pushcore_1:
+ #     is_static: false
+ #     default_tag_size: 0.044
+ #     type: simple
+ #     tags:
+ #     - id: 585
+ #       size: 0.044
+ #       pose:
+ #         position:
+ #           x: 0
+ #           y: -0.1016
+ #           z: 0.036
+ #         rotation:
+ #           x: -0.61394313
+ #           y: 0.61394313
+ #           z: 1.48218982
+ #         position_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #         rotation_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #     - id: 582
+ #       size: 0.044
+ #       pose:
+ #         position:
+ #           x: 0
+ #           y: -0.1016
+ #           z: -0.036
+ #         rotation:
+ #           x: -1.7599884
+ #           y: -1.7599884
+ #           z: -0.72901107
+ #         position_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #         rotation_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+
+
+# # Small Pushcore
+#  - tagslam_pushcore_1:
+#      is_static: false
+#      default_tag_size: 0.044
+#      type: simple
+#      tags:
+#      - id: 585
+#        size: 0.044
+#        pose:
+#          position:
+#            x: 0
+#            # y: -0.137 #model
+#            y: -0.159 #empirically adjusted
+#            z: 0.036
+#          rotation:
+#            x: -0.61394313
+#            y: 0.61394313
+#            z: 1.48218982
+#          position_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+#          rotation_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+#      - id: 582
+#        size: 0.044
+#        pose:
+#          position:
+#            x: 0
+#            # y: -0.137 #model
+#            y: -0.159 #empirically adjusted
+#            z: -0.036
+#          rotation:
+#            x: -1.7599884
+#            y: -1.7599884
+#            z: -0.72901107
+#          position_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+#          rotation_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+#
+#
+# # Big Pushcore
+#  - tagslam_pushcore_2:
+#      is_static: false
+#      default_tag_size: 0.044
+#      type: simple
+#      tags:
+#      - id: 580
+#        size: 0.044
+#        pose:
+#          position:
+#            x: 0
+#            # y: -0.137 #model
+#            y: -0.159 #empirically adjusted
+#            z: 0.036
+#          rotation:
+#            x: -0.61394313
+#            y: 0.61394313
+#            z: 1.48218982
+#          position_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+#          rotation_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+#      - id: 581
+#        size: 0.044
+#        pose:
+#          position:
+#            x: 0
+#            # y: -0.137 #model
+#            y: -0.159 #empirically adjusted
+#            z: -0.036
+#          rotation:
+#            x: -1.7599884
+#            y: -1.7599884
+#            z: -0.72901107
+#          position_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+#          rotation_noise:
+#            x: 0.001
+#            y: 0.001
+#            z: 0.001
+ # We no longer have this puschore
+ # - tagslam_pushcore_2:
+ #     is_static: false
+ #     default_tag_size: 0.044
+ #     type: simple
+ #     tags:
+ #     - id: 578
+ #       size: 0.044
+ #       pose:
+ #         position:
+ #           x: 0
+ #           y: -0.1016
+ #           z: 0.036
+ #         rotation:
+ #           x: -0.61394313
+ #           y: 0.61394313
+ #           z: 1.48218982
+ #         position_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #         rotation_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #     - id: 579
+ #       size: 0.044
+ #       pose:
+ #         position:
+ #           x: 0
+ #           y: -0.1016
+ #           z: -0.036
+ #         rotation:
+ #           x: -1.7599884
+ #           y: -1.7599884
+ #           z: -0.72901107
+ #         position_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #         rotation_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+
+ # The xrf tags conflict with the base tags - this needs to be fixed
+ # - tagslam_xrf_1:
+ #     is_static: false
+ #     default_tag_size: 0.044
+ #     type: simple
+ #     tags:
+ #     - id: 584
+ #       size: 0.044
+ #       pose:
+ #         position:
+ #           x: 0.036
+ #           y: -0.13335
+ #           z: 0
+ #         rotation:
+ #           x: 0.72901107
+ #           y: 1.7599884
+ #           z: 1.7599884
+ #         position_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #         rotation_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #     - id: 583
+ #       size: 0.044
+ #       pose:
+ #         position:
+ #           x: -0.036
+ #           y: -0.13335
+ #           z: 0
+ #         rotation:
+ #           x: -1.48218982
+ #           y: -0.61394313
+ #           z: 0.61394313
+ #         position_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+ #         rotation_noise:
+ #           x: 0.001
+ #           y: 0.001
+ #           z: 0.001
+
+ - kinect:
+     is_static: true
+     type: simple
+     pose:
+       position:
+         x: 0
+         y: 0
+         z: 0
+       rotation:
+         x: 0
+         y: 0
+         z: 0
+       position_noise:
+         x: 0.0001
+         y: 0.0001
+         z: 0.0001
+       rotation_noise:
+         x: 1.0e-05
+         y: 1.0e-05
+         z: 1.0e-05

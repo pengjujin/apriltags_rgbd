@@ -1,0 +1,10 @@
+<launch>
+  <arg name="config_file"
+    default="$(find apriltags_rgbd)/config/testbed_kinect.yaml"/>
+
+  <node pkg="apriltags_rgbd" type="apriltags_rgbd_node.py"
+    name="apriltags_rgbd_node" output="screen">
+    <rosparam param="apriltags_rbgd_config" command="load"
+      file="$(arg config_file)"/>
+  </node>
+</launch>

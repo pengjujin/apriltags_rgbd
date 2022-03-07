@@ -48,7 +48,7 @@ class image_capture:
 		print(("saving data %04d" % (self.counter, )))
 		cv2.imwrite((self.rgb_filepath % (self.counter,)), self.rgb_image)
 		cv2.imwrite((self.depth_filepath % (self.counter,)), self.depth_image)
-		temppath = self.tag_filepath % (self.counter, ) 
+		temppath = self.tag_filepath % (self.counter, )
 		with open(temppath, 'w') as f:
 			f.write(self.detection_string)
 		f.close()
@@ -60,7 +60,7 @@ class image_capture:
 		except CvBridgeError as e:
 			print(e)
 		cv2.imwrite("../../data/rgb_frame.png", rgb_image)
-	
+
 	def depth_callback(self, data):
 		try:
 			depth_image = self.bridge.imgmsg_to_cv2(data, "16UC1")
@@ -71,42 +71,42 @@ class image_capture:
 	def format_AprilTagDetections(self, data):
 		detection_id = data.id
 		tag_corners = data.corners2d
-		corners1_x = tag_corners[0].x 
-		corners1_y = tag_corners[0].y 
-		corners1_z = tag_corners[0].z 
-		corners2_x = tag_corners[1].x 
-		corners2_y = tag_corners[1].y 
-		corners2_z = tag_corners[1].z 
-		corners3_x = tag_corners[2].x 
-		corners3_y = tag_corners[2].y 
-		corners3_z = tag_corners[2].z 
-		corners4_x = tag_corners[3].x 
-		corners4_y = tag_corners[3].y 
-		corners4_z = tag_corners[3].z 
+		corners1_x = tag_corners[0].x
+		corners1_y = tag_corners[0].y
+		corners1_z = tag_corners[0].z
+		corners2_x = tag_corners[1].x
+		corners2_y = tag_corners[1].y
+		corners2_z = tag_corners[1].z
+		corners3_x = tag_corners[2].x
+		corners3_y = tag_corners[2].y
+		corners3_z = tag_corners[2].z
+		corners4_x = tag_corners[3].x
+		corners4_y = tag_corners[3].y
+		corners4_z = tag_corners[3].z
 		tag_size = data.tag_size
 		position_x = data.pose.position.x
-		position_y = data.pose.position.y 
+		position_y = data.pose.position.y
 		position_z = data.pose.position.z
-		rotation_x = data.pose.orientation.x 
-		rotation_y = data.pose.orientation.y 
-		rotation_z = data.pose.orientation.z 
-		rotation_w = data.pose.orientation.w 
+		rotation_x = data.pose.orientation.x
+		rotation_y = data.pose.orientation.y
+		rotation_z = data.pose.orientation.z
+		rotation_w = data.pose.orientation.w
 		template_string = '''
-			detection_id: {0} 
+			detection_id: {0}
 			point1:
-			corner_x: {1} 
+			corner_x: {1}
 			corner_y: {2}
 			corner_z: {3}
 			point2:
-			corner_x: {4} 
+			corner_x: {4}
 			corner_y: {5}
 			corner_z: {6}
 			point3:
-			corner_x: {7} 
+			corner_x: {7}
 			corner_y: {8}
 			corner_z: {9}
 			point4:
-			corner_x: {10} 
+			corner_x: {10}
 			corner_y: {11}
 			corner_z: {12}
 
@@ -120,9 +120,9 @@ class image_capture:
 			rotation_w: {20}
 			'''
 		output_string = template_string.format(detection_id, corners1_x, corners1_y, corners1_z,
-												corners2_x, corners2_y, corners2_z, 
-												corners3_x, corners3_y, corners3_z, 
-												corners4_x, corners4_y, corners4_z,  
+												corners2_x, corners2_y, corners2_z,
+												corners3_x, corners3_y, corners3_z,
+												corners4_x, corners4_y, corners4_z,
 											   tag_size, position_x, position_y, position_z,
 											   rotation_x, rotation_y, rotation_z, rotation_w)
 		return output_string
