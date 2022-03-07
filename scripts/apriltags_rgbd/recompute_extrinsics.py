@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import cv2
 import numpy as np
@@ -91,8 +91,8 @@ def sample_depth_plane():
 	x_end = 600
 	y_start = 256
 	y_end = 266
-	rgb_image = cv2.imread("../data/rgb_frame2.png")
-	depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
+	rgb_image = cv2.imread("../../data/rgb_frame2.png")
+	depth_image = cv2.imread("../../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
 	april_tag_rgb = rgb_image[y_start:y_end, x_start:x_end]
 	april_tag_depth = depth_image[y_start:y_end, x_start:x_end]
 	all_pts = []
@@ -120,7 +120,7 @@ def generate_depth_correspondence(pixel_point, depth_plane_est):
 	fy = 531.28
 	px = 466.96
 	py = 273.26
-	depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
+	depth_image = cv2.imread("../../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
 	x = pixel_point[0]
 	y = pixel_point[1]
 	depth = depth_image[y, x] / 1000.0

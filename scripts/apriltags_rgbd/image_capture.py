@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import rospy
 import cv2
@@ -19,9 +19,9 @@ class image_capture:
 											Subscriber("/apriltags_kinect2/detections", AprilTagDetections)], 1 ,0.5)
 			tss.registerCallback(self.processtag_callback)
 
-			self.tag_filepath = '../data/iros_data/apriltag_info_%04d.txt'
-			self.rgb_filepath = '../data/iros_data/rgb_frame%04d.png'
-			self.depth_filepath = '../data/iros_data/depth_frame%04d.png'
+			self.tag_filepath = '../../data//iros_data/apriltag_info_%04d.txt'
+			self.rgb_filepath = '../../data//iros_data/rgb_frame%04d.png'
+			self.depth_filepath = '../../data//iros_data/depth_frame%04d.png'
 			self.counter = 1
 
 	def processtag_callback(self, rgb_data, depth_data, tag_data):
@@ -59,14 +59,14 @@ class image_capture:
 			rgb_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
 		except CvBridgeError as e:
 			print(e)
-		cv2.imwrite("../data/rgb_frame.png", rgb_image)
+		cv2.imwrite("../../data/rgb_frame.png", rgb_image)
 	
 	def depth_callback(self, data):
 		try:
 			depth_image = self.bridge.imgmsg_to_cv2(data, "16UC1")
 		except CvBridgeError as e:
 			print(e)
-		cv2.imwrite("../data/depth_frame.png", depth_image)
+		cv2.imwrite("../../data/depth_frame.png", depth_image)
 
 	def format_AprilTagDetections(self, data):
 		detection_id = data.id

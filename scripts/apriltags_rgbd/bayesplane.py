@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Author: Siddhartha Srinivasa
 
 import numpy as np

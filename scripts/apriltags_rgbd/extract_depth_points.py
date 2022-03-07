@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import cv2
 import numpy as np
@@ -22,8 +22,8 @@ def main(args):
 	x_end = 557
 	y_start = 207
 	y_end = 224
-	rgb_image = cv2.imread("../data/iros_data2/rgb_frame0000.png")
-	depth_image = cv2.imread("../data/iros_data2/depth_frame0000.png", cv2.IMREAD_ANYDEPTH)
+	rgb_image = cv2.imread("../../data/iros_data2/rgb_frame0000.png")
+	depth_image = cv2.imread("../../data/iros_data2/depth_frame0000.png", cv2.IMREAD_ANYDEPTH)
 	april_tag_rgb = rgb_image[y_start:y_end, x_start:x_end]
 	april_tag_depth = depth_image[y_start:y_end, x_start:x_end]
 	cv2.imshow('april_tag', april_tag_rgb)

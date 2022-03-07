@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import cv2
 import numpy as np
@@ -129,8 +129,8 @@ def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose =
 # 	ob_pts = ob_pt1 + ob_pt2 + ob_pt3 + ob_pt4
 # 	object_pts = np.array(ob_pts).reshape(4,3)
 
-# 	rgb_image = cv2.imread("../data/rgb_frame2.png", 0)
-# 	depth_image = cv2.imread("../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
+# 	rgb_image = cv2.imread("../../data/rgb_frame2.png", 0)
+# 	depth_image = cv2.imread("../../data/depth_frame2.png", cv2.IMREAD_ANYDEPTH)
 
 # 	nrvec, ntvec = solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, 0)
 # 	print("nrev:")

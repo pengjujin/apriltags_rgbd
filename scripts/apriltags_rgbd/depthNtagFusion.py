@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 import cv2
-import numpy as np 
+import numpy as np
 from matplotlib import pyplot as plt
 
-img_depth = cv2.imread('../Data/rawData/dpt0.jpg')
-img_rgb = cv2.imread('../Data/rawData/rgb0.jpg')
+img_depth = cv2.imread('../../data//rawData/dpt0.jpg')
+img_rgb = cv2.imread('../../data//rawData/rgb0.jpg')
 
 
 
