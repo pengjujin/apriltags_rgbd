@@ -37,18 +37,8 @@ from geometry_msgs.msg import Point32
 
 
 # TODO: Remove hardcode
-# Experiment Parameters
-# mtx = Camera Matrix
-# dist = Camera distortion
-# tag_size = Apriltag size
-# tag_radius = Apriltag size / 2
-MTX = np.array([1078.578826404335, 0.0, 959.8136576469886, 0.0, 1078.9620428822643, 528.997658280927, 0.0, 0.0, 1.0]).reshape(3,3)
-DIST = np.zeros((5,1))#np.array([0.09581801408471438, -0.17355242497569437, -0.002099527275158767, -0.0002485026755700764, 0.08403352203200236]).reshape((5,1))
-TAG_SIZE = 0.06925
-TAG_RADIUS = TAG_SIZE / 2.0
-
-
 TAG_PREFIX = "detected_"
+
 class ApriltagsRgbdNode():
     def __init__(self):
         rospy.init_node("apriltags_rgbd")
@@ -69,6 +59,7 @@ class ApriltagsRgbdNode():
         self.rgb_data = None
         self.depth_data = None
         self.tag_data = None
+        self.k_mtx = None
 
         self.new_data = False
 
@@ -83,51 +74,12 @@ class ApriltagsRgbdNode():
             self.corner_pt_pub = rospy.Publisher("corner_tag_pts", PointCloud, queue_size=10)
             self.marker_arr_pub = rospy.Publisher("visualization_marker_array", MarkerArray, queue_size=10)
 
-
-        # cfg_param = rospy.get_param("~apriltags_rbgd_config")
-        # self.config = self.parseConfig(cfg_param)
-
-
-# camera info
-# rgb_image_path
-# depth_image_path
-# Need to convert to opencv
-
-
     def tagCallback(self, camera_info_data, rgb_data, depth_data, tag_data):
         self.camera_info_data = camera_info_data
         self.rgb_data = rgb_data
         self.depth_data = depth_data
         self.tag_data = tag_data
         self.new_data = True
-
-        # print("here")
-        # # print(self.camera_info)
-        # print(camera_info_data)
-        # try:
-        #     rgb_image = self.bridge.imgmsg_to_cv2(rgb_data, "bgr8")
-        #     depth_image = self.bridge.imgmsg_to_cv2(depth_data, "16UC1")
-        # except CvBridgeError as e:
-        #     print(e)
-        #
-        # all_detections = tag_data.detections
-        # # allstring = ''
-        # # for current_detection in all_detections:
-        # #     detection_string = self.format_AprilTagDetections(current_detection)
-        # #     allstring = allstring + detection_string
-        # self.rgb_image = rgb_image
-        # self.depth_image = depth_image
-        # # self.detection_string = allstring
-        # cv2.imshow('Image', rgb_image)
-        # key = cv2.waitKey(1)
-        # if (key > -1):
-        #     self.key_press()
-
-    # def parseConfig(self, cfg_param):
-    #     config = {}
-    #     config["ids"] = [1,2,3,4]
-    #
-    #     return config
 
     def run(self):
         while not rospy.is_shutdown():
@@ -148,6 +100,7 @@ class ApriltagsRgbdNode():
 
             # Extract metadata
             header = self.camera_info_data.header
+            self.k_mtx = np.array(self.camera_info_data.K).reshape(3,3)
 
             if DEBUG:
                 tag_pts = PointCloud()
@@ -156,73 +109,28 @@ class ApriltagsRgbdNode():
 
             # Estimate pose of each tag
             for tag in self.tag_data.apriltags:
-                tag_id, object_pts, image_pts = self.parseTag(tag)
+                tag_id, image_pts = self.parseTag(tag)
 
                 # Estimate pose
-                depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, MTX)
-                depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, MTX)
-
-
-
-
-
-                # nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image,
-                #     object_pts, image_pts, MTX, DIST, 0)
-
-                # vec_a = depth_points[0] - depth_points[1]
-                # vec_b = depth_points[2] - depth_points[1]
-                #
-                # vec_a_len = np.linalg.norm(vec_a)
-                # vec_b_len = np.linalg.norm(vec_b)
-                #
-                # norm = np.cross(vec_a, vec_b)
-                #
-                # q_xyz = np.cross(vec_a, vec_b)
-                # q_w =  np.sqrt(vec_a_len**2 * vec_b_len**2) + np.dot(vec_a, vec_b)
-                # print(np.dot(vec_a, vec_b))
-                # quat = [*q_xyz, q_w]
-                # quat = quat / np.linalg.norm(quat)
-                # quat = [0,0,0,1]
-
-                # q_xyz = vec_a
-                # q_w
-                # print(quat)
-                # vec_a = vec_a / np.linalg.norm(vec_a)
-                # # print("Test rvec:")
-                # # print(nrvec)
-                # # print("Test tvec:")
-                # # print(ntvec)
-                # #
-                # angle = math.atan2( vec_a[0], vec_a[1] )
-                # # print(angle)
-                # # angle =
-                #
-                # qx = norm[0] * math.sin(angle/2)
-                # qy = norm[1] * math.sin(angle/2)
-                # qz = norm[2] * math.sin(angle/2)
-                # qw = math.cos(angle/2)
-                # quat = [qx, qy, qz, qw]
-                # quat = quat / np.linalg.norm(quat)
+                depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
+                depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
 
                 # Compute center of plane
                 center_pt = np.mean(depth_points, axis=0)
 
                 # Plane Normal Vector
-                n_vec = depth_plane_est.mean.n
-                # n_vec = np.array([1,0,0])#depth_plane_est.mean.n
+                n_vec = -depth_plane_est.mean.n # Negative because plane points
+                                                # in opposite direction
                 n_norm = np.linalg.norm(n_vec)
 
                 # Compute point in direction of x-axis
                 x_pt = (depth_points[1] + depth_points[2]) / 2
-                # x_pt = center_pt + np.array([0,1,0])
 
                 # Compute first orthogonal vector - project point onto plane
                 u = x_pt - center_pt
                 v = n_vec
                 v_norm = n_norm
                 x_vec = u - (np.dot(u, v)/v_norm**2)*v
-
-                print(x_vec)
 
                 # Compute second orthogonal vector - take cross product
                 y_vec = np.cross(n_vec, x_vec)
@@ -237,25 +145,12 @@ class ApriltagsRgbdNode():
                 y_vec1 = list(y_vec) + [0]
                 n_vec1 = list(n_vec) + [0]
 
-
-
-                #
-                # x_vec = [0,1,0]
-                # y_vec = [0,0,1]
-                # n_vec = [1,0,0]
-                #
-                # # Compute quaternion from rotation matrix
-                # q_w = 1/2 * np.sqrt(1 + x_vec[0] + y_vec[1] + n_vec[2])
-                # q_x = 1/4 * q_w * (y_vec[2] - n_vec[1])
-                # q_y = 1/4 * q_w * (n_vec[0] - x_vec[2])
-                # q_z = 1/4 * q_w * (x_vec[1] - y_vec[0])
                 R_t = np.array([x_vec1,y_vec1,n_vec1,[0,0,0,1]])
 
-                quat = quaternion_from_matrix(R_t.transpose())#[q_x, q_y, q_z, q_w]
+                quat = quaternion_from_matrix(R_t.transpose()) # [q_x, q_y, q_z, q_w]
 
                 # Normalize quaternion
                 quat = quat / np.linalg.norm(quat)
-                print(quat)
 
                 # Update tf tree
                 output_tf = self.composeTfMsg(center_pt, quat, header, tag_id)
@@ -299,13 +194,6 @@ class ApriltagsRgbdNode():
     def parseTag(self, tag):
         id = tag.id
 
-        ob_pt0 = [-TAG_RADIUS, -TAG_RADIUS, 0.0]
-        ob_pt1 = [ TAG_RADIUS, -TAG_RADIUS, 0.0]
-        ob_pt2 = [ TAG_RADIUS,  TAG_RADIUS, 0.0]
-        ob_pt3 = [-TAG_RADIUS,  TAG_RADIUS, 0.0]
-        ob_pts = ob_pt0 + ob_pt1 + ob_pt2 + ob_pt3
-        object_pts = np.array(ob_pts).reshape(4,3)
-
         im_pt0 = [tag.corners[0].x, tag.corners[0].y]
         im_pt1 = [tag.corners[1].x, tag.corners[1].y]
         im_pt2 = [tag.corners[2].x, tag.corners[2].y]
@@ -314,7 +202,7 @@ class ApriltagsRgbdNode():
         im_pts = im_pt0 + im_pt1 + im_pt2 + im_pt3
         image_pts = np.array(im_pts).reshape(4,2)
 
-        return id, object_pts, image_pts
+        return id, image_pts
 
     def composeTfMsg(self, trans, q, header, tag_id):
         output_tf = TransformStamped()
@@ -327,10 +215,8 @@ class ApriltagsRgbdNode():
         output_tf.transform.translation = Vector3(*trans)
 
         # Populate rotation info
-        # q = tf_conversions.transformations.quaternion_from_euler(*rot)
         output_tf.transform.rotation = Quaternion(*q)
 
-        print(output_tf)
         return output_tf
 
 if __name__ == '__main__':
