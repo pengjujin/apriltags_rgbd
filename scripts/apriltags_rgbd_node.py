@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # Author: Amy Phung
 
-# TODO: move yaml parsing to utils
-# TODO: remove hardcoded tag size
-
 # Tell python where to find apriltags_rgbd code
 import sys
 import os
@@ -140,7 +137,7 @@ class ApriltagsRgbdNode():
                 y_vec = y_vec / np.linalg.norm(y_vec)
                 n_vec = n_vec / np.linalg.norm(n_vec)
 
-                # TODO: this can be optimized
+                # TODO: Optimize this
                 x_vec1 = list(x_vec) + [0]
                 y_vec1 = list(y_vec) + [0]
                 n_vec1 = list(n_vec) + [0]
