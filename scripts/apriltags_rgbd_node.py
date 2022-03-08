@@ -249,8 +249,9 @@ class ApriltagsRgbdNode():
                 # q_x = 1/4 * q_w * (y_vec[2] - n_vec[1])
                 # q_y = 1/4 * q_w * (n_vec[0] - x_vec[2])
                 # q_z = 1/4 * q_w * (x_vec[1] - y_vec[0])
+                R_t = np.array([x_vec1,y_vec1,n_vec1,[0,0,0,1]])
 
-                quat = quaternion_from_matrix([x_vec1,y_vec1,n_vec1,[0,0,0,1]])#[q_x, q_y, q_z, q_w]
+                quat = quaternion_from_matrix(R_t.transpose())#[q_x, q_y, q_z, q_w]
 
                 # Normalize quaternion
                 quat = quat / np.linalg.norm(quat)
