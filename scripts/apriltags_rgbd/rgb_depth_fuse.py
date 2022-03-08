@@ -80,30 +80,30 @@ def getDepthPoints(image_pts, depth_plane_est, depth_image, K):
 	all_depth_points = np.array(all_depth_points)
 	return all_depth_points
 
-def computeExtrinsics(object_pts, image_pts, depth_points, K, D, verbose=0):
+# def computeExtrinsics(object_pts, image_pts, depth_points, K, D, verbose=0):
+#
+# 	rdepth, tdepth = trans.rigid_transform_3D(object_pts, depth_points)
+# 	if(verbose > 0):
+# 		print(rdepth)
+# 		print(tdepth)
+#
+# 	depthH = np.eye(4)
+# 	depthH[0:3, 0:3] = rdepth
+# 	depthH[0:3, 3:4] = tdepth.reshape(3,1)
+# 	if(verbose > 0):
+# 		print(depthH)
+#
+# 	rvec_init, jacob = cv2.Rodrigues(rdepth)
+# 	tvec_init = tdepth.reshape(3,1)
+# 	nrvec, ntvec = lm.PnPMin(rvec_init, tvec_init, object_pts, image_pts, K, D)
+# 	nrvec = nrvec.reshape(3,1)
+# 	ntvec = ntvec.reshape(3,1)
+# 	return nrvec, ntvec
 
-	rdepth, tdepth = trans.rigid_transform_3D(object_pts, depth_points)
-	if(verbose > 0):
-		print(rdepth)
-		print(tdepth)
-
-	depthH = np.eye(4)
-	depthH[0:3, 0:3] = rdepth
-	depthH[0:3, 3:4] = tdepth.reshape(3,1)
-	if(verbose > 0):
-		print(depthH)
-
-	rvec_init, jacob = cv2.Rodrigues(rdepth)
-	tvec_init = tdepth.reshape(3,1)
-	nrvec, ntvec = lm.PnPMin(rvec_init, tvec_init, object_pts, image_pts, K, D)
-	nrvec = nrvec.reshape(3,1)
-	ntvec = ntvec.reshape(3,1)
-	return nrvec, ntvec
-
-def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose = 0):
-	depth_plane_est = sample_depth_plane(depth_image, image_pts, K)
-	depth_points = getDepthPoints(image_pts, depth_plane_est, depth_image, K)
-	return computeExtrinsics(object_pts, image_pts, depth_points, K, D, verbose)
+# def solvePnP_RGBD(rgb_image, depth_image, object_pts, image_pts, K, D, verbose = 0):
+# 	depth_plane_est, all_pts = sample_depth_plane(depth_image, image_pts, K)
+# 	depth_points = getDepthPoints(image_pts, depth_plane_est, depth_image, K)
+# 	return computeExtrinsics(object_pts, image_pts, depth_points, K, D, verbose)
 
 # def main():
 # 	gt_rvec = np.array([[ 3.33005081],[ 0.21025803], [-1.34587401]])

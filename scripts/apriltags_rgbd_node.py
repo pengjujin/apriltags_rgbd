@@ -14,6 +14,7 @@ sys.path.append(fpath)
 import numpy as np
 import cv2
 import rgb_depth_fuse as fuse
+import math
 
 # ROS Imports
 import rospy
@@ -25,6 +26,9 @@ from apriltag_msgs.msg import ApriltagArrayStamped
 from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
 from cv_bridge import CvBridge, CvBridgeError
 import tf_conversions
+from tf.transformations import quaternion_from_matrix
+
+
 
 # For debugging
 DEBUG = True
@@ -39,7 +43,7 @@ from geometry_msgs.msg import Point32
 # tag_size = Apriltag size
 # tag_radius = Apriltag size / 2
 MTX = np.array([1078.578826404335, 0.0, 959.8136576469886, 0.0, 1078.9620428822643, 528.997658280927, 0.0, 0.0, 1.0]).reshape(3,3)
-DIST = np.array([0.09581801408471438, -0.17355242497569437, -0.002099527275158767, -0.0002485026755700764, 0.08403352203200236]).reshape((5,1))
+DIST = np.zeros((5,1))#np.array([0.09581801408471438, -0.17355242497569437, -0.002099527275158767, -0.0002485026755700764, 0.08403352203200236]).reshape((5,1))
 TAG_SIZE = 0.06925
 TAG_RADIUS = TAG_SIZE / 2.0
 
@@ -171,17 +175,99 @@ class ApriltagsRgbdNode():
                     self.corner_pt_pub.publish(corner_pts)
 
 
-                #
                 # nrvec, ntvec = fuse.solvePnP_RGBD(rgb_image, depth_image,
                 #     object_pts, image_pts, MTX, DIST, 0)
-                # print("Test rvec:")
-                # print(nrvec)
-                # print("Test tvec:")
-                # print(ntvec)
+
+                # vec_a = depth_points[0] - depth_points[1]
+                # vec_b = depth_points[2] - depth_points[1]
                 #
-                # # Update tf tree
-                # output_tf = self.composeTfMsg(ntvec, nrvec, header, tag_id)
-                # self.tf_broadcaster.sendTransform(output_tf)
+                # vec_a_len = np.linalg.norm(vec_a)
+                # vec_b_len = np.linalg.norm(vec_b)
+                #
+                # norm = np.cross(vec_a, vec_b)
+                #
+                # q_xyz = np.cross(vec_a, vec_b)
+                # q_w =  np.sqrt(vec_a_len**2 * vec_b_len**2) + np.dot(vec_a, vec_b)
+                # print(np.dot(vec_a, vec_b))
+                # quat = [*q_xyz, q_w]
+                # quat = quat / np.linalg.norm(quat)
+                # quat = [0,0,0,1]
+
+                # q_xyz = vec_a
+                # q_w
+                # print(quat)
+                # vec_a = vec_a / np.linalg.norm(vec_a)
+                # # print("Test rvec:")
+                # # print(nrvec)
+                # # print("Test tvec:")
+                # # print(ntvec)
+                # #
+                # angle = math.atan2( vec_a[0], vec_a[1] )
+                # # print(angle)
+                # # angle =
+                #
+                # qx = norm[0] * math.sin(angle/2)
+                # qy = norm[1] * math.sin(angle/2)
+                # qz = norm[2] * math.sin(angle/2)
+                # qw = math.cos(angle/2)
+                # quat = [qx, qy, qz, qw]
+                # quat = quat / np.linalg.norm(quat)
+
+                # Compute center of plane
+                center_pt = np.mean(depth_points, axis=0)
+
+                # Plane Normal Vector
+                n_vec = depth_plane_est.mean.n
+                # n_vec = np.array([1,0,0])#depth_plane_est.mean.n
+                n_norm = np.linalg.norm(n_vec)
+
+                # Compute point in direction of x-axis
+                x_pt = (depth_points[1] + depth_points[2]) / 2
+                # x_pt = center_pt + np.array([0,1,0])
+
+                # Compute first orthogonal vector - project point onto plane
+                u = x_pt - center_pt
+                v = n_vec
+                v_norm = n_norm
+                x_vec = u - (np.dot(u, v)/v_norm**2)*v
+
+                print(x_vec)
+
+                # Compute second orthogonal vector - take cross product
+                y_vec = np.cross(n_vec, x_vec)
+
+                # Normalize vectors
+                x_vec = x_vec / np.linalg.norm(x_vec)
+                y_vec = y_vec / np.linalg.norm(y_vec)
+                n_vec = n_vec / np.linalg.norm(n_vec)
+
+                # TODO: this can be optimized
+                x_vec = list(x_vec) + [0]
+                y_vec = list(y_vec) + [0]
+                n_vec = list(n_vec) + [0]
+
+
+
+                #
+                # x_vec = [0,1,0]
+                # y_vec = [0,0,1]
+                # n_vec = [1,0,0]
+                #
+                # # Compute quaternion from rotation matrix
+                # q_w = 1/2 * np.sqrt(1 + x_vec[0] + y_vec[1] + n_vec[2])
+                # q_x = 1/4 * q_w * (y_vec[2] - n_vec[1])
+                # q_y = 1/4 * q_w * (n_vec[0] - x_vec[2])
+                # q_z = 1/4 * q_w * (x_vec[1] - y_vec[0])
+
+                quat = quaternion_from_matrix([x_vec,y_vec,n_vec,[0,0,0,1]])#[q_x, q_y, q_z, q_w]
+
+                # Normalize quaternion
+                quat = quat / np.linalg.norm(quat)
+                print(quat)
+
+                # Update tf tree
+                output_tf = self.composeTfMsg(center_pt, quat, header, tag_id)
+                self.tf_broadcaster.sendTransform(output_tf)
 
             self.rate.sleep()
 
@@ -205,7 +291,7 @@ class ApriltagsRgbdNode():
 
         return id, object_pts, image_pts
 
-    def composeTfMsg(self, trans, rot, header, tag_id):
+    def composeTfMsg(self, trans, q, header, tag_id):
         output_tf = TransformStamped()
 
         # Update header info
@@ -216,7 +302,7 @@ class ApriltagsRgbdNode():
         output_tf.transform.translation = Vector3(*trans)
 
         # Populate rotation info
-        q = tf_conversions.transformations.quaternion_from_euler(*rot)
+        # q = tf_conversions.transformations.quaternion_from_euler(*rot)
         output_tf.transform.rotation = Quaternion(*q)
 
         print(output_tf)
