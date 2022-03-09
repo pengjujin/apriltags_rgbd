@@ -26,11 +26,15 @@ import tf_conversions
 from tf.transformations import quaternion_from_matrix
 from visualization_msgs.msg import MarkerArray, Marker
 
+# For filtering
+ENABLE_FILTER = True
+from corner_filter import CornerFilter
 
 # For debugging
 DEBUG = True
 from sensor_msgs.msg import PointCloud
 from geometry_msgs.msg import Point32
+
 
 
 # TODO: Remove hardcode
@@ -39,7 +43,7 @@ TAG_PREFIX = "detected_"
 class ApriltagsRgbdNode():
     def __init__(self):
         rospy.init_node("apriltags_rgbd")
-        self.rate = rospy.Rate(10) # 10 Hz
+        self.rate = rospy.Rate(60) # 10 Hz
 
         # CV bridge
         self.bridge = CvBridge()
@@ -64,6 +68,10 @@ class ApriltagsRgbdNode():
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+
+        # Point filtering
+        if ENABLE_FILTER:
+            self.filter = CornerFilter()
 
         # Publishers
         if DEBUG:
@@ -108,9 +116,13 @@ class ApriltagsRgbdNode():
             for tag in self.tag_data.apriltags:
                 tag_id, image_pts = self.parseTag(tag)
 
-                # Estimate pose
+                # Fit plane and compute corner positions
                 depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
                 depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
+
+                if ENABLE_FILTER:
+                    # Filter points
+                    self.filter.updateEstimate(tag_id, depth_points)
 
                 # Compute center of plane
                 center_pt = np.mean(depth_points, axis=0)
