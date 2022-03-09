@@ -28,7 +28,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 
 # For filtering
 ENABLE_FILTER = True
-from corner_filter import CornerFilter
+from tag_detection_filter import TagDetectionFilter
 
 # For debugging
 DEBUG = True
@@ -71,7 +71,7 @@ class ApriltagsRgbdNode():
 
         # Point filtering
         if ENABLE_FILTER:
-            self.filter = CornerFilter()
+            self.filter = TagDetectionFilter()
 
         # Publishers
         if DEBUG:
@@ -120,18 +120,20 @@ class ApriltagsRgbdNode():
                 depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
                 depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
 
+                # Plane Normal Vector
+                n_vec = -depth_plane_est.mean.n # Negative because plane points
+                                                # in opposite direction
+
                 if ENABLE_FILTER:
                     # Filter points
-                    depth_points = self.filter.updateEstimate(tag_id, depth_points)
+                    depth_points, n_vec = self.filter.updateEstimate(tag_id, depth_points, n_vec)
                     if depth_points == None:
                         continue
 
                 # Compute center of plane
                 center_pt = np.mean(depth_points, axis=0)
 
-                # Plane Normal Vector
-                n_vec = -depth_plane_est.mean.n # Negative because plane points
-                                                # in opposite direction
+                # Compute magnitude of normal
                 n_norm = np.linalg.norm(n_vec)
 
                 # Compute point in direction of x-axis
