@@ -13,6 +13,8 @@ MIN_PTS = 10 # minimum number of measurements before applying filters
 # TODO: add time consideration - discard stored points if too long since last
 # update
 
+# TODO: debug why tool corner detections are all getting filtered out
+
 # TODO: put these in a utils file
 def median(x):
     m,n = x.shape
@@ -20,12 +22,10 @@ def median(x):
     x = np.partition(x,middle,axis=0)
     return x[middle].mean(axis=0)
 
-def removeOutliers(data,thresh=2.0):
+def removeOutliers(data,thresh=1.0):
     m = median(data)
     s = np.abs(data-m)
-    return data[(s<median(s)*thresh).all(axis=1)]
-
-
+    return data[(s<abs(median(s)*thresh)).all(axis=1)]
 
 class CornerFilter():
     def __init__(self):
@@ -34,7 +34,7 @@ class CornerFilter():
 
         # Using list for speed
         # Usage: self.detected_corners[tag_idx][corner_idx] - will provide list
-        # of 3d points
+        # of 3d points.
 
     #
     #
@@ -44,6 +44,7 @@ class CornerFilter():
     #     return corner_estimate
 
     def updateEstimate(self, tag_id, corners):
+        print(corners)
         if tag_id not in self.tag_ids:
             self.tag_ids.append(tag_id)
             self.detected_corners.append([])
@@ -55,14 +56,24 @@ class CornerFilter():
         for i in range(4):
             self.detected_corners[idx][i].append(corners[i])
 
-        print("TAG ID" + str(tag_id))
+        # TODO: Pre-allocate space for numpy array to avoid re-creating it each loop
+        # TODO: improve this implementation
+        filtered_corners = []
+        c0 = removeOutliers(np.array(self.detected_corners[idx][0], dtype=np.float32))
+        c1 = removeOutliers(np.array(self.detected_corners[idx][1], dtype=np.float32))
+        c2 = removeOutliers(np.array(self.detected_corners[idx][2], dtype=np.float32))
+        c3 = removeOutliers(np.array(self.detected_corners[idx][3], dtype=np.float32))
 
+        if len(c0)==0 or len(c1)==0 or len(c2)==0 or len(c3)==0:
+            return None # We can't do anything if we're missing a corner
 
+        filtered_corners.append(np.mean(c0,axis=0))
+        filtered_corners.append(np.mean(c1,axis=0))
+        filtered_corners.append(np.mean(c2,axis=0))
+        filtered_corners.append(np.mean(c3,axis=0))
+        print(filtered_corners)
 
-
-        print(len(self.detected_corners[idx]))
-        print(len(self.detected_corners[idx][0]))
-        print(len(self.detected_corners[idx][3]))
+        return filtered_corners
         #     self.detected_corners.append([])
         #     self.detected_corners[-1].append(corners)
         #     return None # We don't do anything with just one estimate

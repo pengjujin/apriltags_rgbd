@@ -122,7 +122,9 @@ class ApriltagsRgbdNode():
 
                 if ENABLE_FILTER:
                     # Filter points
-                    self.filter.updateEstimate(tag_id, depth_points)
+                    depth_points = self.filter.updateEstimate(tag_id, depth_points)
+                    if depth_points == None:
+                        continue
 
                 # Compute center of plane
                 center_pt = np.mean(depth_points, axis=0)
