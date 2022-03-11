@@ -4,6 +4,10 @@
 
   <node pkg="apriltags_rgbd" type="apriltags_rgbd_node.py"
     name="apriltags_rgbd_node" output="screen">
+  </node>
+
+  <node pkg="apriltags_rgbd" type="body_pose_estimation_node.py"
+    name="body_pose_estimation_node" output="screen">
     <rosparam param="apriltags_rbgd_config" command="load"
       file="$(arg config_file)"/>
   </node>

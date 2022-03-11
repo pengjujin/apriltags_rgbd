@@ -73,8 +73,6 @@ class TagDetectionFilter():
         filtered_corners.append(np.mean(c1,axis=0))
         filtered_corners.append(np.mean(c2,axis=0))
         filtered_corners.append(np.mean(c3,axis=0))
-        print(filtered_corners)
-
 
         filtered_normals = removeOutliers(np.array(self.normals[idx], dtype=np.float32))
         filtered_normal = np.mean(filtered_normals,axis=0)

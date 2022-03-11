@@ -1,8 +1,5 @@
 bodies:
  - base:
-     is_static: false
-     default_tag_size: 0.06925
-     type: simple
      tags:
          - id: 4
            size: 0.06925
@@ -66,49 +63,46 @@ bodies:
                 z: 0
 
 # Small pushcore
- # - tagslam_pushcore_1:
- #     is_static: false
- #     default_tag_size: 0.044
- #     type: simple
- #     tags:
- #     - id: 585
- #       size: 0.044
- #       pose:
- #         position:
- #           x: 0
- #           y: -0.1016
- #           z: 0.036
- #         rotation:
- #           x: -0.61394313
- #           y: 0.61394313
- #           z: 1.48218982
- #         position_noise:
- #           x: 0.001
- #           y: 0.001
- #           z: 0.001
- #         rotation_noise:
- #           x: 0.001
- #           y: 0.001
- #           z: 0.001
- #     - id: 582
- #       size: 0.044
- #       pose:
- #         position:
- #           x: 0
- #           y: -0.1016
- #           z: -0.036
- #         rotation:
- #           x: -1.7599884
- #           y: -1.7599884
- #           z: -0.72901107
- #         position_noise:
- #           x: 0.001
- #           y: 0.001
- #           z: 0.001
- #         rotation_noise:
- #           x: 0.001
- #           y: 0.001
- #           z: 0.001
+ - tagslam_pushcore_1:
+     tags:
+     - id: 585
+       size: 0.044
+       pose:
+         position:
+           x: 0
+           y: -0.1016
+           z: 0.036
+         rotation:
+           x: -0.61394313
+           y: 0.61394313
+           z: 1.48218982
+         position_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
+         rotation_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
+     - id: 582
+       size: 0.044
+       pose:
+         position:
+           x: 0
+           y: -0.1016
+           z: -0.036
+         rotation:
+           x: -1.7599884
+           y: -1.7599884
+           z: -0.72901107
+         position_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
+         rotation_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
 
 
 # # Small Pushcore
@@ -294,24 +288,3 @@ bodies:
  #           x: 0.001
  #           y: 0.001
  #           z: 0.001
-
- - kinect:
-     is_static: true
-     type: simple
-     pose:
-       position:
-         x: 0
-         y: 0
-         z: 0
-       rotation:
-         x: 0
-         y: 0
-         z: 0
-       position_noise:
-         x: 0.0001
-         y: 0.0001
-         z: 0.0001
-       rotation_noise:
-         x: 1.0e-05
-         y: 1.0e-05
-         z: 1.0e-05

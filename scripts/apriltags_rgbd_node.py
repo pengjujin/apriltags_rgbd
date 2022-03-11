@@ -38,7 +38,7 @@ from geometry_msgs.msg import Point32
 
 
 # TODO: Remove hardcode
-TAG_PREFIX = "detected_"
+TAG_PREFIX = ""#"detected_"
 
 class ApriltagsRgbdNode():
     def __init__(self):
@@ -74,10 +74,11 @@ class ApriltagsRgbdNode():
             self.filter = TagDetectionFilter()
 
         # Publishers
+        self.tag_tf_pub = rospy.Publisher("/apriltags_rgbd/tag_tfs", TransformStamped, queue_size=10)
         if DEBUG:
-            self.tag_pt_pub = rospy.Publisher("extracted_tag_pts", PointCloud, queue_size=10)
-            self.corner_pt_pub = rospy.Publisher("corner_tag_pts", PointCloud, queue_size=10)
-            self.marker_arr_pub = rospy.Publisher("visualization_marker_array", MarkerArray, queue_size=10)
+            self.tag_pt_pub = rospy.Publisher("/apriltags_rgbd/extracted_tag_pts", PointCloud, queue_size=10)
+            self.corner_pt_pub = rospy.Publisher("/apriltags_rgbd/corner_tag_pts", PointCloud, queue_size=10)
+            self.marker_arr_pub = rospy.Publisher("/apriltags_rgbd/visualization_marker_array", MarkerArray, queue_size=10)
 
     def tagCallback(self, camera_info_data, rgb_data, depth_data, tag_data):
         self.camera_info_data = camera_info_data
@@ -127,8 +128,11 @@ class ApriltagsRgbdNode():
                 if ENABLE_FILTER:
                     # Filter points
                     depth_points, n_vec = self.filter.updateEstimate(tag_id, depth_points, n_vec)
-                    if depth_points == None:
+
+                    # Check results from filter
+                    if depth_points == None or np.isnan(np.sum(n_vec)):
                         continue
+
 
                 # Compute center of plane
                 center_pt = np.mean(depth_points, axis=0)
@@ -168,6 +172,7 @@ class ApriltagsRgbdNode():
                 # Update tf tree
                 output_tf = self.composeTfMsg(center_pt, quat, header, tag_id)
                 self.tf_broadcaster.sendTransform(output_tf)
+                self.tag_tf_pub.publish(output_tf)
 
                 if DEBUG:
                     tag_pts.header = header
