@@ -40,8 +40,11 @@ class BodyPoseEstimationNode():
         if not self.cfg:
             sys.exit("Invalid configuration")
 
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+
         self.tag_tf_sub = rospy.Subscriber("/apriltags_rgbd/tag_tfs", TransformStamped, self.tagTfCallback)
 
+        self.frame_id = ""
 
     def tagTfCallback(self, msg):
         # Extract position and quaternion for camera to tag
@@ -60,8 +63,9 @@ class BodyPoseEstimationNode():
         self.cfg['tf_camera2tag'][idx] = X_c_t
         self.cfg['timestamps'][idx] = msg.header.stamp.to_sec()
 
-        print(self.cfg['tf_camera2tag'][idx])
-        print(self.cfg['timestamps'][idx])
+
+        # TODO: make this more robust
+        self.frame_id = msg.header.frame_id
 
         # print(msg.header.stamp.to_sec())
         # print(rospy.Time.now().to_sec())
@@ -144,16 +148,24 @@ class BodyPoseEstimationNode():
                 idxs = np.where(b_arr)[1]
 
                 for idx in idxs:
-                    # Compute estimate of camera to body tf
+                    # Get tag info
                     X_c_t = self.cfg['tf_camera2tag'][idx]
                     X_t_b = self.cfg['tf_tag2body'][idx]
+                    tag_ts = self.cfg['timestamps'][idx]
+                    tag_id = self.cfg['tags'][idx]
 
-                    # print("----------")
-                    # print(X_c_t)
-                    # print(X_t_b)
+                    # Compute estimate of camera to body tf
                     X_c_b = tr.concatenate_matrices(X_c_t, X_t_b)
-                    #
+
+                    # Publish for visualization
                     msg = tf_utils.se3_to_msg(X_c_b)
+                    tf_msg = TransformStamped()
+                    tf_msg.header.frame_id = self.frame_id
+                    tf_msg.header.stamp = rospy.Time.from_sec(tag_ts)
+                    tf_msg.child_frame_id = body + "_" + str(tag_id)
+                    tf_msg.transform = msg
+
+                    self.tf_broadcaster.sendTransform(tf_msg)
                     print(msg)
 
 
