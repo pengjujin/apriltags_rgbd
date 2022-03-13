@@ -26,6 +26,9 @@ import tf_conversions
 from tf.transformations import quaternion_from_matrix
 from visualization_msgs.msg import MarkerArray, Marker
 
+# Custom messages
+from apriltags_rgbd.msg import PointArray, LabeledPointArray
+
 # For filtering
 ENABLE_FILTER = True
 from tag_detection_filter import TagDetectionFilter
@@ -70,6 +73,7 @@ class ApriltagsRgbdNode():
         self.tag_tf_pub = rospy.Publisher("/apriltags_rgbd/tag_tfs", TransformStamped, queue_size=10)
         self.tag_pt_pub = rospy.Publisher("/apriltags_rgbd/extracted_tag_pts", PointCloud, queue_size=10)
         self.corner_pt_pub = rospy.Publisher("/apriltags_rgbd/corner_tag_pts", PointCloud, queue_size=10)
+        self.corner_pt_labeled_pub = rospy.Publisher("/apriltags_rgbd/corner_tag_pts_labeled", LabeledPointArray, queue_size=10)
         self.marker_arr_pub = rospy.Publisher("/apriltags_rgbd/visualization_marker_array", MarkerArray, queue_size=10)
 
     def tagCallback(self, camera_info_data, rgb_data, depth_data, tag_data):
@@ -105,6 +109,11 @@ class ApriltagsRgbdNode():
             tag_pts = PointCloud()
             corner_pts = PointCloud()
             marker_array_msg = MarkerArray()
+            corner_pts_labeled_array = LabeledPointArray()
+
+            tag_pts.header = header
+            corner_pts.header = header
+            corner_pts_labeled_array.header = header
 
             # Estimate pose of each tag
             for tag in self.tag_data.apriltags:
@@ -167,14 +176,17 @@ class ApriltagsRgbdNode():
                 self.tag_tf_pub.publish(output_tf)
 
                 # Save tag and corner points
-                tag_pts.header = header
-                corner_pts.header = header
+                corner_pts_tag = PointArray()
 
                 for i in range(len(all_pts)):
                     tag_pts.points.append(Point32(*all_pts[i]))
 
                 for i in range(len(depth_points)):
                     corner_pts.points.append(Point32(*depth_points[i]))
+                    corner_pts_tag.points.append(Point32(*depth_points[i]))
+
+                corner_pts_labeled_array.labels.append(str(tag_id))
+                corner_pts_labeled_array.point_arrays.append(corner_pts_tag)
 
                 # Create visualization markers
                 marker = Marker()
@@ -198,6 +210,7 @@ class ApriltagsRgbdNode():
             # Publish data
             self.tag_pt_pub.publish(tag_pts)
             self.corner_pt_pub.publish(corner_pts)
+            self.corner_pt_labeled_pub.publish(corner_pts_labeled_array)
             self.marker_arr_pub.publish(marker_array_msg)
 
             self.rate.sleep()
