@@ -16,7 +16,7 @@ import time
 # ROS Imports
 import rospy
 import tf2_ros
-from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Pose
+from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Pose, Point32
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Image, CameraInfo, PointCloud
 from apriltag_msgs.msg import ApriltagArrayStamped
@@ -50,6 +50,10 @@ class BodyPoseEstimationNode():
         # Subscribers
         self.tag_sub = rospy.Subscriber("/apriltags_rgbd/tag_tfs", TransformStamped, self.tagCallback)
         self.corner_sub = rospy.Subscriber("/apriltags_rgbd/corner_tag_pts_labeled", LabeledPointArray, self.cornerCallback)
+
+        # Publishers (visualization only)
+        self.body_pts_pub =  rospy.Publisher("/apriltags_rgbd/icp_body_pts", PointCloud, queue_size=10)
+        self.detected_pts_pub =  rospy.Publisher("/apriltags_rgbd/icp_detected_pts", PointCloud, queue_size=10)
 
         # Private vars
         self.frame_id = ""
@@ -193,6 +197,30 @@ class BodyPoseEstimationNode():
         # Save corner data
         self.tag_corner_info = corner_data
 
+    def computeInitialPose(self, body, time_mask):
+        """Compute initial pose to use for ICP - use body pose estimate
+        based on first body tag (chosen arbitrarily)
+        """
+        # Create bool array for body
+        b_arr_body = [self.cfg['bodies'] == body]
+
+        # Get tags with valid timestamps for this body
+        b_arr = np.logical_and(time_mask, b_arr_body)[0]
+
+        # Use first index
+        idx = np.where(b_arr)[0][0]
+
+        # Get tag info
+        X_c_t = self.cfg['tf_camera2tag'][idx]
+        X_t_b = self.cfg['tf_tag2body'][idx]
+        tag_ts = self.cfg['timestamps'][idx]
+        tag_id = self.cfg['tags'][idx]
+
+        # Compute estimate of camera to body tf
+        X_c_b = tr.concatenate_matrices(X_c_t, X_t_b)
+
+        return X_c_b
+
     def extractBodyPoints(self, body):
         # Get list of corner points for body
         body_idx = self.bodies.index(body)
@@ -252,6 +280,7 @@ class BodyPoseEstimationNode():
 
             # Estimate tf of each body
             for body in bodies:
+                initial_pose = self.computeInitialPose(body, b_arr_time)
                 detected_pts = self.extractDetectedPoints(body, b_arr_time)
                 body_pts = self.extractBodyPoints(body)
 
@@ -261,12 +290,28 @@ class BodyPoseEstimationNode():
 
                 # Run ICP to compute transform from camera to body
                 # TODO: use initial pose to help ensure we don't get the mirror
-                X_c_b, distances, iterations = icp.icp(body_pts, detected_pts, tolerance=0.000001)
+                X_c_b, distances, iterations = icp.icp(body_pts, detected_pts,
+                    init_pose=initial_pose, max_iterations=100, tolerance=0.000000001)
 
                 # Publish to ROS
                 tf_msg = self.constructOutputMsg(body, X_c_b)
-                print(tf_msg)
                 self.tf_broadcaster.sendTransform(tf_msg)
+
+
+                # Publish body and detected points for visualization
+                body_pts_msg = PointCloud()
+                body_pts_msg.header = tf_msg.header
+                detected_pts_msg = PointCloud()
+                detected_pts_msg.header = tf_msg.header
+
+                for i in range(len(body_pts)):
+                    body_pts_msg.points.append(Point32(*body_pts[i]))
+
+                for i in range(len(detected_pts)):
+                    detected_pts_msg.points.append(Point32(*detected_pts[i]))
+
+                self.body_pts_pub.publish(body_pts_msg)
+                self.detected_pts_pub.publish(detected_pts_msg)
 
                 #         self.cfg['timestamps'][idx] = tf_data.header.stamp.to_sec()
                 #
