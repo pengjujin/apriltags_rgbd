@@ -92,6 +92,11 @@ def msg_to_se3(msg):
     return g
 
 def se3_to_msg(se3):
+    """Conversion from geometric SE(3) into Transform ROS message
+
+    @param se3: a 4x4 SE(3) matrix as a numpy array
+    @return msg: ROS message C{geometry_msgs/Transform}
+    """
     _, _, angles, trans, _ = tr.decompose_matrix(se3)
     quat = tr.quaternion_from_euler(*angles)
 
@@ -99,3 +104,13 @@ def se3_to_msg(se3):
     msg.translation = Vector3(*trans)
     msg.rotation = Quaternion(*quat)
     return msg
+
+def point_to_p(msg):
+    """Convert a C{geometry_msgs/Point32} into position np arrays
+
+    @param msg: ROS message to be converted
+    @return:
+      - p: position as a np.array
+    """
+    p = np.array([msg.x, msg.y, msg.z])
+    return p
