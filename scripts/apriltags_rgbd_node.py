@@ -16,9 +16,9 @@ import math
 # ROS Imports
 import rospy
 import tf2_ros
-from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Pose
+from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Pose, Point32
 from std_msgs.msg import Bool
-from sensor_msgs.msg import Image, CameraInfo
+from sensor_msgs.msg import Image, CameraInfo, PointCloud
 from apriltag_msgs.msg import ApriltagArrayStamped
 from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
 from cv_bridge import CvBridge, CvBridgeError
@@ -29,13 +29,6 @@ from visualization_msgs.msg import MarkerArray, Marker
 # For filtering
 ENABLE_FILTER = True
 from tag_detection_filter import TagDetectionFilter
-
-# For debugging
-DEBUG = True
-from sensor_msgs.msg import PointCloud
-from geometry_msgs.msg import Point32
-
-
 
 # TODO: Remove hardcode
 TAG_PREFIX = ""#"detected_"
@@ -75,10 +68,9 @@ class ApriltagsRgbdNode():
 
         # Publishers
         self.tag_tf_pub = rospy.Publisher("/apriltags_rgbd/tag_tfs", TransformStamped, queue_size=10)
-        if DEBUG:
-            self.tag_pt_pub = rospy.Publisher("/apriltags_rgbd/extracted_tag_pts", PointCloud, queue_size=10)
-            self.corner_pt_pub = rospy.Publisher("/apriltags_rgbd/corner_tag_pts", PointCloud, queue_size=10)
-            self.marker_arr_pub = rospy.Publisher("/apriltags_rgbd/visualization_marker_array", MarkerArray, queue_size=10)
+        self.tag_pt_pub = rospy.Publisher("/apriltags_rgbd/extracted_tag_pts", PointCloud, queue_size=10)
+        self.corner_pt_pub = rospy.Publisher("/apriltags_rgbd/corner_tag_pts", PointCloud, queue_size=10)
+        self.marker_arr_pub = rospy.Publisher("/apriltags_rgbd/visualization_marker_array", MarkerArray, queue_size=10)
 
     def tagCallback(self, camera_info_data, rgb_data, depth_data, tag_data):
         self.camera_info_data = camera_info_data
@@ -86,6 +78,7 @@ class ApriltagsRgbdNode():
         self.depth_data = depth_data
         self.tag_data = tag_data
         self.new_data = True
+        # TODO: check timestamps here
 
     def run(self):
         while not rospy.is_shutdown():
@@ -108,10 +101,10 @@ class ApriltagsRgbdNode():
             header = self.camera_info_data.header
             self.k_mtx = np.array(self.camera_info_data.K).reshape(3,3)
 
-            if DEBUG:
-                tag_pts = PointCloud()
-                corner_pts = PointCloud()
-                marker_array_msg = MarkerArray()
+            # Create messages for point info
+            tag_pts = PointCloud()
+            corner_pts = PointCloud()
+            marker_array_msg = MarkerArray()
 
             # Estimate pose of each tag
             for tag in self.tag_data.apriltags:
@@ -132,7 +125,6 @@ class ApriltagsRgbdNode():
                     # Check results from filter
                     if depth_points == None or np.isnan(np.sum(n_vec)):
                         continue
-
 
                 # Compute center of plane
                 center_pt = np.mean(depth_points, axis=0)
@@ -174,38 +166,39 @@ class ApriltagsRgbdNode():
                 self.tf_broadcaster.sendTransform(output_tf)
                 self.tag_tf_pub.publish(output_tf)
 
-                if DEBUG:
-                    tag_pts.header = header
-                    corner_pts.header = header
+                # Save tag and corner points
+                tag_pts.header = header
+                corner_pts.header = header
 
-                    for i in range(len(all_pts)):
-                        tag_pts.points.append(Point32(*all_pts[i]))
+                for i in range(len(all_pts)):
+                    tag_pts.points.append(Point32(*all_pts[i]))
 
-                    for i in range(len(depth_points)):
-                        corner_pts.points.append(Point32(*depth_points[i]))
+                for i in range(len(depth_points)):
+                    corner_pts.points.append(Point32(*depth_points[i]))
 
-                    marker = Marker()
-                    marker.header = header
-                    marker.id = tag_id
-                    marker.type = 0
-                    marker.pose.position = Point32(0,0,0)
-                    marker.pose.orientation = Quaternion(0,0,0,1)
-                    marker.color.r = 1.0
-                    marker.color.g = 0.0
-                    marker.color.b = 0.0
-                    marker.color.a = 1.0
-                    marker.scale.x = 0.005
-                    marker.scale.y = 0.01
-                    marker.scale.z = 0.0
-                    pt1 = Point32(*center_pt)
-                    pt2 = Point32(*(center_pt + n_vec/5))
-                    marker.points = [pt1, pt2]
-                    marker_array_msg.markers.append(marker)
+                # Create visualization markers
+                marker = Marker()
+                marker.header = header
+                marker.id = tag_id
+                marker.type = 0
+                marker.pose.position = Point32(0,0,0)
+                marker.pose.orientation = Quaternion(0,0,0,1)
+                marker.color.r = 1.0
+                marker.color.g = 0.0
+                marker.color.b = 0.0
+                marker.color.a = 1.0
+                marker.scale.x = 0.005
+                marker.scale.y = 0.01
+                marker.scale.z = 0.0
+                pt1 = Point32(*center_pt)
+                pt2 = Point32(*(center_pt + n_vec/5))
+                marker.points = [pt1, pt2]
+                marker_array_msg.markers.append(marker)
 
-            if DEBUG:
-                self.tag_pt_pub.publish(tag_pts)
-                self.corner_pt_pub.publish(corner_pts)
-                self.marker_arr_pub.publish(marker_array_msg)
+            # Publish data
+            self.tag_pt_pub.publish(tag_pts)
+            self.corner_pt_pub.publish(corner_pts)
+            self.marker_arr_pub.publish(marker_array_msg)
 
             self.rate.sleep()
 

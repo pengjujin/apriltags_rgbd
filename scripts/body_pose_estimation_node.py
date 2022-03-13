@@ -42,9 +42,126 @@ class BodyPoseEstimationNode():
 
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
 
+        # TODO: Sync subscribers
         self.tag_tf_sub = rospy.Subscriber("/apriltags_rgbd/tag_tfs", TransformStamped, self.tagTfCallback)
+        # subscribe to 3d corner detections. Need to write publsiher
 
+        # Private vars
         self.frame_id = ""
+        self.bodies = set(self.cfg['bodies'])
+        self.body_pts = []
+
+        # Compute points in each body for ICP
+        for b in self.bodies:
+            self.body_pts.append(self.computeBodyPts(b))
+
+    def parseConfig(self, cfg):
+        formatted_cfg = {
+            "tags": [],
+            "sizes": [],
+            "bodies": [],
+            "timestamps": [],
+            "tf_camera2tag": [],
+            "tf_tag2body": []
+        }
+        for body in cfg['bodies']:
+            name = list(body.keys())[0]
+            if name in formatted_cfg["bodies"]:
+                rospy.logerror("Duplicate body " + name + "found")
+                return False
+            for tag in body[name]['tags']:
+                if tag['id'] in formatted_cfg["tags"]:
+                    rospy.logerror("Duplicate tag ID " + str(tag['id']) + "found")
+                    return False
+
+                formatted_cfg["tags"].append(tag['id'])
+                formatted_cfg["sizes"].append(tag['size'])
+                formatted_cfg["bodies"].append(name)
+
+                # Position of body to tag
+                p_b_t = [tag['pose']['position']['x'],
+                         tag['pose']['position']['y'],
+                         tag['pose']['position']['z']]
+
+                # Rotation from body to tag
+                a_b_t = [tag['pose']['rotation']['x'],
+                         tag['pose']['rotation']['y'],
+                         tag['pose']['rotation']['z']]
+
+                # Compute transformation between tag to body
+                X_b_t = tr.compose_matrix(angles=a_b_t, translate=p_b_t)
+                X_t_b = tr.inverse_matrix(X_b_t)
+                formatted_cfg["tf_tag2body"].append(X_t_b)
+
+                # Add placeholders for vars
+                formatted_cfg['tf_camera2tag'].append(None)
+                formatted_cfg['timestamps'].append(0)
+
+        # Use np array for compute efficiency
+        formatted_cfg['tags'] = np.array(formatted_cfg['tags'])
+        formatted_cfg['bodies'] = np.array(formatted_cfg['bodies'])
+        formatted_cfg['timestamps'] = np.array(formatted_cfg['timestamps'])
+        formatted_cfg['tf_camera2tag'] = np.array(formatted_cfg['tf_camera2tag'])
+        formatted_cfg['tf_tag2body'] = np.array(formatted_cfg['tf_tag2body'])
+
+        return formatted_cfg
+
+    def getCornerPoints(self, tag_size, use_3d=True):
+        """Compute position for apriltag corners in tag frame
+
+        @param:
+        - tag_size: width of tag in meters
+        - use_3d: whether to return 2d or 3d points. 3d points will set
+        z value to 0
+        @return corners: list of corners in 0,1,2,3 order according to this
+        layout:
+
+           +y
+            ^
+            |
+        3___|___2
+        |       |
+        |       | ----> +x
+        |_______|
+        0       1
+        """
+        tag_radius = tag_size / 2
+
+        if use_3d:
+            corners = [[-tag_radius, -tag_radius, 0.0],
+                       [ tag_radius, -tag_radius, 0.0],
+                       [ tag_radius,  tag_radius, 0.0],
+                       [-tag_radius,  tag_radius, 0.0]]
+        else:
+            corners = [[-tag_radius, -tag_radius],
+                       [ tag_radius, -tag_radius],
+                       [ tag_radius,  tag_radius],
+                       [-tag_radius,  tag_radius]]
+        return corners
+
+    def computeBodyPts(self, body):
+        """Compute 3d points of apriltag corners in body frame
+
+        @param body: name of body to compute points for
+        @return pts: points of corners for all apriltags in body based on
+        config, as a numpy array
+        """
+        # Initialize output
+        pts = []
+
+        # Get indices of tags relevant to current body
+        idxs = np.argwhere(self.cfg['bodies'] == body).T[0]
+
+        # Compute position of each corner in each tag relative to body
+        for idx in idxs:
+            corners = self.getCornerPoints(self.cfg['sizes'][idx])
+            X_b_t = tr.inverse_matrix(self.cfg['tf_tag2body'][idx])
+            for c in corners:
+                 X_t_p = tr.translation_matrix(c)
+                 X_b_p = tr.concatenate_matrices(X_b_t, X_t_p)
+                 _, _, _, pos, _ = tr.decompose_matrix(X_b_p)
+                 pts.append(pos)
+        return np.array(pts)
 
     def tagTfCallback(self, msg):
         # Extract position and quaternion for camera to tag
@@ -78,64 +195,13 @@ class BodyPoseEstimationNode():
         # print(trans1_mat)
         # print(q)
 
-    def parseConfig(self, cfg):
-        formatted_cfg = {
-            "tags": [],
-            "bodies": [],
-            "timestamps": [],
-            "tf_camera2tag": [],
-            "tf_tag2body": []
-        }
-        for body in cfg['bodies']:
-            name = list(body.keys())[0]
-            if name in formatted_cfg["bodies"]:
-                rospy.logerror("Duplicate body " + name + "found")
-                return False
-            print(name)
-            for tag in body[name]['tags']:
-                if tag['id'] in formatted_cfg["tags"]:
-                    rospy.logerror("Duplicate tag ID " + str(tag['id']) + "found")
-                    return False
-
-                formatted_cfg["tags"].append(tag['id'])
-                formatted_cfg["bodies"].append(name)
-
-                # Position of body to tag
-                p_b_t = [tag['pose']['position']['x'],
-                         tag['pose']['position']['y'],
-                         tag['pose']['position']['z']]
-
-                # Rotation from body to tag
-                a_b_t = [tag['pose']['rotation']['x'],
-                         tag['pose']['rotation']['y'],
-                         tag['pose']['rotation']['z']]
-
-                # Compute transformation between tag to body
-                X_b_t = tr.compose_matrix(angles=a_b_t, translate=p_b_t)
-                X_t_b = tr.inverse_matrix(X_b_t)
-                formatted_cfg["tf_tag2body"].append(X_t_b)
-
-                # Add placeholders for vars
-                formatted_cfg['tf_camera2tag'].append(None)
-                formatted_cfg['timestamps'].append(0)
-
-        # Use np array for compute efficiency
-        formatted_cfg['tags'] = np.array(formatted_cfg['tags'])
-        formatted_cfg['bodies'] = np.array(formatted_cfg['bodies'])
-        formatted_cfg['timestamps'] = np.array(formatted_cfg['timestamps'])
-        formatted_cfg['tf_camera2tag'] = np.array(formatted_cfg['tf_camera2tag'])
-        formatted_cfg['tf_tag2body'] = np.array(formatted_cfg['tf_tag2body'])
-
-        return formatted_cfg
-
-
     def run(self):
         while not rospy.is_shutdown():
             # Create bool array of valid timestamps
             b_arr_time = [rospy.Time.now().to_sec() - self.cfg['timestamps'] < TF_TIMEOUT]
 
             # Get bodies with valid timestamps
-            bodies_list = self.cfg['bodies'][b_arr_time]
+            bodies_list = self.cfg['bodies'][tuple(b_arr_time)]
             bodies = set(bodies_list)
 
             # Estimate tf of each body
@@ -154,6 +220,11 @@ class BodyPoseEstimationNode():
                     tag_ts = self.cfg['timestamps'][idx]
                     tag_id = self.cfg['tags'][idx]
 
+                    # Compute position of corner points in camera frame
+                    # X_t_p = translation_matrix((1, 2, 3)) # points in tag frame
+                    #
+                    # X_c_t*X_t_p
+
                     # Compute estimate of camera to body tf
                     X_c_b = tr.concatenate_matrices(X_c_t, X_t_b)
 
@@ -166,7 +237,6 @@ class BodyPoseEstimationNode():
                     tf_msg.transform = msg
 
                     self.tf_broadcaster.sendTransform(tf_msg)
-                    print(msg)
 
 
             # print(bodies)
