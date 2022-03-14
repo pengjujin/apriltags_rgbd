@@ -63,38 +63,19 @@ bodies:
                 z: 0
 
 # Small pushcore
- - tagslam_pushcore_1:
+ - pushcore_1:
      tags:
-     - id: 582
-       size: 0.044
-       pose:
-         position:
-           x: 0.036
-           y: 0
-           z: 0.155
-         rotation:
-           x: 0
-           y: 2.394252
-           z: 0
-         position_noise:
-           x: 0.001
-           y: 0.001
-           z: 0.001
-         rotation_noise:
-           x: 0.001
-           y: 0.001
-           z: 0.001
-     # - id: 585
+     # - id: 582
      #   size: 0.044
      #   pose:
      #     position:
-     #       x: -0.036
-     #       y: 0
-     #       z: 0.155
+     #       x: 0
+     #       y: -0.155
+     #       z: 0.036
      #     rotation:
      #       x: 0
-     #       y: 2.394252
-     #       z: 3.14
+     #       y: 0.785
+     #       z: 1.57
      #     position_noise:
      #       x: 0.001
      #       y: 0.001
@@ -103,6 +84,25 @@ bodies:
      #       x: 0.001
      #       y: 0.001
      #       z: 0.001
+     - id: 585
+       size: 0.044
+       pose:
+         position:
+           x: 0
+           y: -0.155
+           z: -0.036
+         rotation:
+           x: 3.14
+           y: -0.785
+           z: 1.57
+         position_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
+         rotation_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
 
 
 
