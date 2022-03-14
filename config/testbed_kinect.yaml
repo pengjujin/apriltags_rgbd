@@ -1,17 +1,17 @@
 bodies:
  - base:
      tags:
-         # - id: 4
-         #   size: 0.06925
-         #   pose:
-         #      position:
-         #        x: 0.127405
-         #        y: 0.127405
-         #        z: -0.0102
-         #      rotation:
-         #        x: 0
-         #        y: 0
-         #        z: 0
+         - id: 4
+           size: 0.06925
+           pose:
+              position:
+                x: 0.127405
+                y: 0.127405
+                z: -0.0102
+              rotation:
+                x: 0
+                y: 0
+                z: 0
 
         # Floor tags
          - id: 1
@@ -38,17 +38,17 @@ bodies:
                 y: 0
                 z: 0
 
-         # - id: 3
-         #   size: 0.06925
-         #   pose:
-         #      position:
-         #        x: 1.09855
-         #        y: 0.62611
-         #        z: -0.38735
-         #      rotation:
-         #        x: 0
-         #        y: 0
-         #        z: 0
+         - id: 3
+           size: 0.06925
+           pose:
+              position:
+                x: 1.09855
+                y: 0.62611
+                z: -0.38735
+              rotation:
+                x: 0
+                y: 0
+                z: 0
 
          - id: 2
            size: 0.06925
@@ -65,25 +65,25 @@ bodies:
 # Small pushcore
  - pushcore_1:
      tags:
-     # - id: 582
-     #   size: 0.044
-     #   pose:
-     #     position:
-     #       x: 0
-     #       y: -0.155
-     #       z: 0.036
-     #     rotation:
-     #       x: 0
-     #       y: 0.785
-     #       z: 1.57
-     #     position_noise:
-     #       x: 0.001
-     #       y: 0.001
-     #       z: 0.001
-     #     rotation_noise:
-     #       x: 0.001
-     #       y: 0.001
-     #       z: 0.001
+     - id: 582
+       size: 0.044
+       pose:
+         position:
+           x: 0
+           y: -0.155
+           z: 0.036
+         rotation:
+           x: 0
+           y: 0.785
+           z: 1.57
+         position_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
+         rotation_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
      - id: 585
        size: 0.044
        pose:
