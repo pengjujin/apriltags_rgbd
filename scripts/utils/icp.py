@@ -67,7 +67,8 @@ def nearest_neighbor(src, dst):
     return distances.ravel(), indices.ravel()
 
 
-def icp(A, B, init_pose=None, max_iterations=20, tolerance=0.001):
+def icp(A, B, init_pose=None, max_iterations=20, tolerance=0.001,
+    compute_correspondences=True):
     '''
     The Iterative Closest Point method: finds best-fit transform that maps points A on to points B
     Input:
@@ -82,7 +83,8 @@ def icp(A, B, init_pose=None, max_iterations=20, tolerance=0.001):
         i: number of iterations to converge
     '''
 
-    # assert A.shape == B.shape
+    if not compute_correspondences:
+        assert A.shape == B.shape
 
     # get number of dimensions
     m = A.shape[1]
@@ -100,11 +102,17 @@ def icp(A, B, init_pose=None, max_iterations=20, tolerance=0.001):
     prev_error = 0
 
     for i in range(max_iterations):
-        # find the nearest neighbors between the current source and destination points
-        distances, indices = nearest_neighbor(src[:m,:].T, dst[:m,:].T)
+        if compute_correspondences:
+            # find the nearest neighbors between the current source and destination points
+            distances, indices = nearest_neighbor(src[:m,:].T, dst[:m,:].T)
 
-        # compute the transformation between the current source and nearest destination points
-        T,_,_ = best_fit_transform(src[:m,:].T, dst[:m,indices].T)
+            # compute the transformation between the current source and nearest destination points
+            T,_,_ = best_fit_transform(src[:m,:].T, dst[:m,indices].T)
+
+        else:
+            # Assume correspondences
+            distances = np.mean(src-dst, axis=0)
+            T,_,_ = best_fit_transform(src[:m,:].T, dst[:m,:].T)
 
         # update the current source
         src = np.dot(T, src)

@@ -45,6 +45,9 @@ class BodyPoseEstimationNode():
         if not self.cfg:
             sys.exit("Invalid configuration")
 
+        self.num_tags = len(self.cfg['tags'])
+        self.state = self.initState(self.num_tags)
+
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
 
         # Subscribers
@@ -58,24 +61,16 @@ class BodyPoseEstimationNode():
         # Private vars
         self.frame_id = ""
         self.bodies = list(set(self.cfg['bodies']))
-        self.body_pts = []
-        self.prev_ts = []
+        self.prev_ts = np.zeros(len(self.bodies))
         self.tag_corner_info = None
-
-        for b in self.bodies:
-            # Compute points in each body for ICP
-            self.body_pts.append(self.computeBodyPts(b))
-            # Initialize ts to 0
-            self.prev_ts.append(0)
 
     def parseConfig(self, cfg):
         formatted_cfg = {
             "tags": [],
             "sizes": [],
             "bodies": [],
-            "timestamps": [],
-            "tf_camera2tag": [],
-            "tf_tag2body": []
+            "tf_tag2body": [],
+            "corner_pts": [], # In body frame
         }
         for body in cfg['bodies']:
             name = list(body.keys())[0]
@@ -106,18 +101,23 @@ class BodyPoseEstimationNode():
                 X_t_b = tr.inverse_matrix(X_b_t)
                 formatted_cfg["tf_tag2body"].append(X_t_b)
 
-                # Add placeholders for vars
-                formatted_cfg['tf_camera2tag'].append(None)
-                formatted_cfg['timestamps'].append(0.0)
+                # Compute corners of tag in body frame
+                corner_pts = self.computeBodyPts(tag, tag['size'], X_t_b)
+                formatted_cfg["corner_pts"].append(corner_pts)
 
         # Use np array for compute efficiency
         formatted_cfg['tags'] = np.array(formatted_cfg['tags'])
         formatted_cfg['bodies'] = np.array(formatted_cfg['bodies'])
-        formatted_cfg['timestamps'] = np.array(formatted_cfg['timestamps'])
-        formatted_cfg['tf_camera2tag'] = np.array(formatted_cfg['tf_camera2tag'])
         formatted_cfg['tf_tag2body'] = np.array(formatted_cfg['tf_tag2body'])
 
         return formatted_cfg
+
+    def initState(self, num_tags):
+        state = {
+            "timestamps": np.zeros(num_tags),
+            "tf_camera2tag": np.empty(num_tags, dtype=object)
+        }
+        return state
 
     def getCornerPoints(self, tag_size, use_3d=True):
         """Compute position for apriltag corners in tag frame
@@ -152,28 +152,30 @@ class BodyPoseEstimationNode():
                        [-tag_radius,  tag_radius]]
         return corners
 
-    def computeBodyPts(self, body):
+    def computeBodyPts(self, tag, size, tf_tag2body):
         """Compute theoretical 3d points of apriltag corners in body frame
 
-        @param body: name of body to compute points for
-        @return pts: points of corners for all apriltags in body based on
-        config, as a numpy array
+        @param
+            - tag: name of tag to compute points for
+            - size: size of tag
+            - tf_tag2body: se3 matrix describing transform between tag to body
+        @return pts: points of corners for apriltag relative to body based
+        on config, as a numpy array
         """
         # Initialize output
         pts = []
 
-        # Get indices of tags relevant to current body
-        idxs = np.argwhere(self.cfg['bodies'] == body).T[0]
+        # Compute position of each corner in tag relative to body
+        corners = self.getCornerPoints(size)
 
-        # Compute position of each corner in each tag relative to body
-        for idx in idxs:
-            corners = self.getCornerPoints(self.cfg['sizes'][idx])
-            X_b_t = tr.inverse_matrix(self.cfg['tf_tag2body'][idx])
-            for c in corners:
-                 X_t_p = tr.translation_matrix(c)
-                 X_b_p = tr.concatenate_matrices(X_b_t, X_t_p)
-                 _, _, _, pos, _ = tr.decompose_matrix(X_b_p)
-                 pts.append(pos)
+        X_b_t = tr.inverse_matrix(tf_tag2body)
+
+        for c in corners:
+             X_t_p = tr.translation_matrix(c)
+             X_b_p = tr.concatenate_matrices(X_b_t, X_t_p)
+             _, _, _, pos, _ = tr.decompose_matrix(X_b_p)
+             pts.append(pos)
+
         return np.array(pts)
 
     def tagCallback(self, tf_data):
@@ -190,8 +192,8 @@ class BodyPoseEstimationNode():
             return
 
         idx = np.where(self.cfg['tags'] == tf_data.child_frame_id)[0][0]
-        self.cfg['tf_camera2tag'][idx] = X_c_t
-        self.cfg['timestamps'][idx] = tf_data.header.stamp.to_sec()
+        self.state['tf_camera2tag'][idx] = X_c_t
+        self.state['timestamps'][idx] = tf_data.header.stamp.to_sec()
 
         # TODO: make this more robust
         self.frame_id = tf_data.header.frame_id
@@ -214,9 +216,9 @@ class BodyPoseEstimationNode():
         idx = np.where(b_arr)[0][0]
 
         # Get tag info
-        X_c_t = self.cfg['tf_camera2tag'][idx]
+        X_c_t = self.state['tf_camera2tag'][idx]
         X_t_b = self.cfg['tf_tag2body'][idx]
-        tag_ts = self.cfg['timestamps'][idx]
+        tag_ts = self.state['timestamps'][idx]
         tag_id = self.cfg['tags'][idx]
 
         # Compute estimate of camera to body tf
@@ -224,15 +226,37 @@ class BodyPoseEstimationNode():
 
         return X_c_b
 
-    def extractBodyPoints(self, body):
-        # Get list of corner points for body
-        body_idx = self.bodies.index(body)
-        body_pts = self.body_pts[body_idx]
-        return body_pts
+    def extractTagPoints(self, tags):
+        """Extract tag corner points in body frame. Assumes all tags in
+        list are from same body, and that cfg variable has corner positions
+        pre-computed
+
+        @param tags: list of tags to extract points for
+        @return tag_pts: points of corners for all apriltags in original list
+        relative to body based on config, as a numpy array
+        """
+        # Initialize corner array
+        tag_pts = []
+
+        # Add corners from each tag
+        for tag_id in tags:
+            if tag_id not in self.cfg['tags']:
+                rospy.logwarn("No config info for tag " + tag_id)
+                continue
+            tag_idx = np.argwhere(self.cfg['tags'] == tag_id)[0][0]
+
+            for corner in self.cfg['corner_pts'][tag_idx]:
+                tag_pts.append(corner)
+
+        # Return as np array
+        return np.array(tag_pts)
 
     def extractDetectedPoints(self, body, time_mask):
         # Initialize corner points array for body
         detected_pts = []
+
+        # Initialize array of tag info
+        detected_tags = []
 
         # Create bool array for body
         b_arr_body = [self.cfg['bodies'] == body]
@@ -255,14 +279,18 @@ class BodyPoseEstimationNode():
                 pt = tf_utils.point_to_p(c)
                 detected_pts.append(pt)
 
+            # Save tag info
+            detected_tags.append(tag_id)
+
         detected_pts = np.array(detected_pts)
-        return detected_pts
+        detected_tags = np.array(detected_tags)
+        return detected_pts, detected_tags
 
     def constructOutputMsg(self, body, se3):
         output_msg = TransformStamped()
 
         # Use most recent timestamp for body
-        ts = max(self.cfg['timestamps'][self.cfg['bodies'] == body])
+        ts = max(self.state['timestamps'][self.cfg['bodies'] == body])
         output_msg.header.stamp = rospy.Time.from_sec(ts)
         output_msg.header.frame_id = self.frame_id
         output_msg.child_frame_id = "detected_" + body
@@ -271,7 +299,7 @@ class BodyPoseEstimationNode():
         return output_msg
 
     def checkNewData(self, body):
-        ts = max(self.cfg['timestamps'][self.cfg['bodies'] == body])
+        ts = max(self.state['timestamps'][self.cfg['bodies'] == body])
         b_idx = self.bodies.index(body)
         if self.prev_ts[b_idx] == ts:
             return False
@@ -285,7 +313,7 @@ class BodyPoseEstimationNode():
             if self.tag_corner_info == None:
                 continue
             # Create bool array of valid timestamps
-            b_arr_time = [rospy.Time.now().to_sec() - self.cfg['timestamps'] < TF_TIMEOUT]
+            b_arr_time = [rospy.Time.now().to_sec() - self.state['timestamps'] < TF_TIMEOUT]
 
             # Get bodies with valid timestamps
             bodies_list = self.cfg['bodies'][tuple(b_arr_time)]
@@ -298,8 +326,8 @@ class BodyPoseEstimationNode():
                     continue
 
                 initial_pose = self.computeInitialPose(body, b_arr_time)
-                detected_pts = self.extractDetectedPoints(body, b_arr_time)
-                body_pts = self.extractBodyPoints(body)
+                detected_pts, detected_tags = self.extractDetectedPoints(body, b_arr_time)
+                body_pts = self.extractTagPoints(detected_tags)
 
                 # Ensure we have valid data
                 if len(detected_pts) == 0:
@@ -307,9 +335,11 @@ class BodyPoseEstimationNode():
                     continue
 
                 # Run ICP to compute transform from camera to body
-                # TODO: use initial pose to help ensure we don't get the mirror
+                # Using extractDetectedPoints and extractTagPoints ensure
+                # we already have correspondences
                 X_c_b, distances, iterations = icp.icp(body_pts, detected_pts,
-                    init_pose=initial_pose, max_iterations=100, tolerance=0.000000001)
+                    init_pose=initial_pose, max_iterations=100,
+                    tolerance=0.000000001, compute_correspondences=False)
 
                 # Publish to ROS
                 tf_msg = self.constructOutputMsg(body, X_c_b)
@@ -330,86 +360,6 @@ class BodyPoseEstimationNode():
 
                 self.body_pts_pub.publish(body_pts_msg)
                 self.detected_pts_pub.publish(detected_pts_msg)
-
-                #         self.cfg['timestamps'][idx] = tf_data.header.stamp.to_sec()
-                #
-                #         self.frame_id
-                # print(T)
-
-
-
-                #
-                # # TODO: Compute icp initial estimate
-                # print(b_arr)
-                # body_tags = self.cfg['tags'][b_arr]
-                # # print("here")
-                # # print(body_tags)
-                # # print(self.tag_corner_info.labels)
-                #
-                # for tag in body_tags:
-                #     if tag in self.tag_corner_info.labels:
-                #         tag
-
-                # for idx in idxs:
-                #     # Get tag info
-                #     X_c_t = self.cfg['tf_camera2tag'][idx]
-                #     X_t_b = self.cfg['tf_tag2body'][idx]
-                #     tag_ts = self.cfg['timestamps'][idx]
-                #     tag_id = self.cfg['tags'][idx]
-                #
-                #     # Compute position of corner points in camera frame
-                #     # X_t_p = translation_matrix((1, 2, 3)) # points in tag frame
-                #     #
-                #     # X_c_t*X_t_p
-                #
-                #     # TODO: need to add error checking for initial messages
-                #
-                #     print(np.array(self.tag_corner_info.labels) == '4')
-                #             # print(msg.header.stamp.to_sec())
-                #             # print(rospy.Time.now().to_sec())
-                #             # print(X_c_t)
-                #             # self.cfg
-                #             # self.cfg
-                #             # print(p)
-                #
-                #             # trans1_mat = tft.translation_matrix(msg.transform.translation)
-                #             # print(trans1_mat)
-                #             # print(q)
-                #
-                #
-                #     # Compute estimate of camera to body tf
-                #     X_c_b = tr.concatenate_matrices(X_c_t, X_t_b)
-                #
-                #     # Publish for visualization
-                #     msg = tf_utils.se3_to_msg(X_c_b)
-                #     tf_msg = TransformStamped()
-                #     tf_msg.header.frame_id = self.frame_id
-                #     tf_msg.header.stamp = rospy.Time.from_sec(tag_ts)
-                #     tf_msg.child_frame_id = body + "_" + str(tag_id)
-                #     tf_msg.transform = msg
-                #
-                #     self.tf_broadcaster.sendTransform(tf_msg)
-
-
-            # print(bodies)
-
-
-
-                     # print(self.cfg['tags'].shape)
-                     # print(self.cfg['bodies'].shape)
-                     # print(self.cfg['timestamps'].shape)
-                     # print(self.cfg['tf_camera2tag'].shape)
-                     # print(self.cfg['tf_tag2body'].shape)
-                     #
-                     # print(self.cfg['tf_tag2body'][0])
-                     # print(idx)
-
-
-            # Multiply X_c_t X_t_b to get X_c_b
-            #
-            # Record X_c_b
-            # Take average of X_c_b values between tags
-
 
             self.rate.sleep()
 

@@ -119,9 +119,15 @@ class ApriltagsRgbdNode():
             for tag in self.tag_data.apriltags:
                 tag_id, image_pts = self.parseTag(tag)
 
-                # Fit plane and compute corner positions
-                depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
-                depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
+                # TODO: figure out why this errors out when camera is blocked
+                # for some time
+                try:
+                    # Fit plane and compute corner positions
+                    depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
+                    depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
+                except:
+                    rospy.logwarn("Error in plane fitting - skipping tag " + str(tag_id))
+                    continue
 
                 # Plane Normal Vector
                 n_vec = -depth_plane_est.mean.n # Negative because plane points
@@ -191,7 +197,7 @@ class ApriltagsRgbdNode():
                 # Create visualization markers
                 marker = Marker()
                 marker.header = header
-                marker.id = tag_id
+                marker.id = int(tag_id)
                 marker.type = 0
                 marker.pose.position = Point32(0,0,0)
                 marker.pose.orientation = Quaternion(0,0,0,1)
@@ -216,7 +222,7 @@ class ApriltagsRgbdNode():
             self.rate.sleep()
 
     def parseTag(self, tag):
-        id = tag.id
+        id = str(tag.id)
 
         im_pt0 = [tag.corners[0].x, tag.corners[0].y]
         im_pt1 = [tag.corners[1].x, tag.corners[1].y]
