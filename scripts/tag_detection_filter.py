@@ -58,6 +58,13 @@ class TagDetectionFilter():
             self.detected_corners[idx][i].append(corners[i])
         self.normals[idx].append(normal)
 
+        if len(self.normals[idx]) > WINDOW_SIZE:
+            self.normals[idx].pop(0)
+            self.detected_corners[idx][0].pop(0)
+            self.detected_corners[idx][1].pop(0)
+            self.detected_corners[idx][2].pop(0)
+            self.detected_corners[idx][3].pop(0)
+
         # TODO: Pre-allocate space for numpy array to avoid re-creating it each loop
         # TODO: improve this implementation
         filtered_corners = []

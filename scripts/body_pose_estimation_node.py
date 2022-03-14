@@ -59,11 +59,14 @@ class BodyPoseEstimationNode():
         self.frame_id = ""
         self.bodies = list(set(self.cfg['bodies']))
         self.body_pts = []
+        self.prev_ts = []
         self.tag_corner_info = None
 
-        # Compute points in each body for ICP
         for b in self.bodies:
+            # Compute points in each body for ICP
             self.body_pts.append(self.computeBodyPts(b))
+            # Initialize ts to 0
+            self.prev_ts.append(0)
 
     def parseConfig(self, cfg):
         formatted_cfg = {
@@ -267,6 +270,16 @@ class BodyPoseEstimationNode():
         output_msg.transform = tf_utils.se3_to_msg(se3)
         return output_msg
 
+    def checkNewData(self, body):
+        ts = max(self.cfg['timestamps'][self.cfg['bodies'] == body])
+        b_idx = self.bodies.index(body)
+        if self.prev_ts[b_idx] == ts:
+            return False
+        else:
+            # Update ts
+            self.prev_ts[b_idx] = ts
+            return True
+
     def run(self):
         while not rospy.is_shutdown():
             if self.tag_corner_info == None:
@@ -280,10 +293,15 @@ class BodyPoseEstimationNode():
 
             # Estimate tf of each body
             for body in bodies:
+                # Check if we have new data
+                if not self.checkNewData(body):
+                    continue
+
                 initial_pose = self.computeInitialPose(body, b_arr_time)
                 detected_pts = self.extractDetectedPoints(body, b_arr_time)
                 body_pts = self.extractBodyPoints(body)
 
+                # Ensure we have valid data
                 if len(detected_pts) == 0:
                     rospy.logwarn("No usable corner detections")
                     continue
