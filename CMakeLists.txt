@@ -6,6 +6,7 @@ project(apriltags_rgbd)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   apriltag_msgs
+  apriltag_ros
   cv_bridge
   geometry_msgs
   message_generation

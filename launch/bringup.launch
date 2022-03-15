@@ -1,10 +1,26 @@
 <launch>
-  <arg name="config_file"
-    default="$(find apriltags_rgbd)/config/testbed_kinect.yaml"/>
+  <!-- Apriltag detection node -->
+  <arg name="camera_name" default="/kinect2/hd/" />
+  <arg name="image_topic" default="image_color_rect" />
 
+  <node pkg="apriltag_ros" type="apriltag_detector_node"
+	name="detector_kinect" output="screen">
+    <param name="refine" type="bool" value="true"/>
+    <param name="family" type="int" value="0"/>
+    <param name="type"   type="int" value="0"/>
+    <param name="black_border" type="int" value="1"/>
+    <remap from="~image" to="$(arg camera_name)/$(arg image_topic)"/>
+    <remap from="~tags" to="$(arg camera_name)/tags"/>
+  </node>
+
+  <!-- Apriltag RGBD pose estimation -->
   <node pkg="apriltags_rgbd" type="apriltags_rgbd_node.py"
     name="apriltags_rgbd_node" output="screen">
   </node>
+
+  <!-- Body pose estimation -->
+  <arg name="config_file"
+    default="$(find apriltags_rgbd)/config/testbed_kinect.yaml"/>
 
   <node pkg="apriltags_rgbd" type="body_pose_estimation_node.py"
     name="body_pose_estimation_node" output="screen">

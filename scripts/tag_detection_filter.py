@@ -8,13 +8,10 @@ import math
 
 # TODO: remove hardcode
 WINDOW_SIZE = 20 # consider up to last 20 detections
-MIN_PTS = 10 # minimum number of measurements before applying filters
 
 # TODO: add time consideration - discard stored points if too long since last
 # update
-
 # TODO: debug why tool corner detections are all getting filtered out
-
 # TODO: put these in a utils file
 def median(x):
     m,n = x.shape
@@ -32,17 +29,6 @@ class TagDetectionFilter():
         self.tag_ids = []
         self.detected_corners = []
         self.normals = []
-
-        # Using list for speed
-        # Usage: self.detected_corners[tag_idx][corner_idx] - will provide list
-        # of 3d points.
-
-    #
-    #
-    #     queue.pop(0)
-    #     queue.append()
-    #
-    #     return corner_estimate
 
     def updateEstimate(self, tag_id, corners, normal):
         if tag_id not in self.tag_ids:
@@ -85,20 +71,3 @@ class TagDetectionFilter():
         filtered_normal = np.mean(filtered_normals,axis=0)
 
         return filtered_corners, filtered_normal
-        #     self.detected_corners.append([])
-        #     self.detected_corners[-1].append(corners)
-        #     return None # We don't do anything with just one estimate
-        #
-        # idx = self.tag_ids.index(tag_id)
-        # self.detected_corners[idx].append(corners)
-        #
-        # # [Which tag][Which measurement][which corner][axis]
-        # # print(tag_id)
-        # print("here")
-        # # print(np.array(self.detected_corners).shape)
-        # print(self.detected_corners[0][0][0][0])
-        # removeOutliers
-
-        # Apply filter
-
-                        # Restrict window size
