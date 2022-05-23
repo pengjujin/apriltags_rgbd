@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # Author: Amy Phung
 
-# Tell python where to find apriltags_rgbd code
+# Tell python where to find apriltags_rgbd and utils code
 import sys
 import os
 fpath = os.path.join(os.path.dirname(__file__), "apriltags_rgbd")
+sys.path.append(fpath)
+fpath = os.path.join(os.path.dirname(__file__), "utils")
 sys.path.append(fpath)
 
 # Python Imports
@@ -13,13 +15,16 @@ import cv2
 import rgb_depth_fuse as fuse
 import math
 
+# Custom Imports
+import tf_utils
+
 # ROS Imports
 import rospy
 import tf2_ros
 from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Pose, Point32
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Image, CameraInfo, PointCloud
-from apriltag_msgs.msg import ApriltagArrayStamped
+from apriltag_msgs.msg import ApriltagPoseStamped
 from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
 from cv_bridge import CvBridge, CvBridgeError
 import tf_conversions
@@ -41,6 +46,10 @@ class ApriltagsRgbdNode():
         rospy.init_node("apriltags_rgbd")
         self.rate = rospy.Rate(60) # 10 Hz
 
+        # Load ROS parameters
+        self.rgbd_pos_flag = rospy.get_param("~use_rgbd_position")
+        self.rgbd_rot_flag = rospy.get_param("~use_rgbd_rotation")
+
         # CV bridge
         self.bridge = CvBridge()
 
@@ -49,7 +58,7 @@ class ApriltagsRgbdNode():
             Subscriber("/kinect2/hd/camera_info", CameraInfo),
             Subscriber("/kinect2/hd/image_color_rect", Image),
             Subscriber("/kinect2/hd/image_depth_rect", Image),
-            Subscriber("/kinect2/hd/tags", ApriltagArrayStamped)], 1 ,0.5)
+            Subscriber("/apriltag_pose_estimator/apriltag_poses", ApriltagPoseStamped)], 1 ,0.5)
         tss.registerCallback(self.tagCallback)
 
         self.camera_info_data = None
@@ -116,7 +125,7 @@ class ApriltagsRgbdNode():
             corner_pts_labeled_array.header = header
 
             # Estimate pose of each tag
-            for tag in self.tag_data.apriltags:
+            for tag_idx, tag in enumerate(self.tag_data.apriltags):
                 tag_id, image_pts = self.parseTag(tag)
 
                 # TODO: figure out why this errors out when camera is blocked
@@ -141,40 +150,15 @@ class ApriltagsRgbdNode():
                     if depth_points == None or np.isnan(np.sum(n_vec)):
                         continue
 
-                # Compute center of plane
-                center_pt = np.mean(depth_points, axis=0)
+                # Compute pose
+                center_pt, quat = self.computePoseFromDepth(depth_points, n_vec)
 
-                # Compute magnitude of normal
-                n_norm = np.linalg.norm(n_vec)
-
-                # Compute point in direction of x-axis
-                x_pt = (depth_points[1] + depth_points[2]) / 2
-
-                # Compute first orthogonal vector - project point onto plane
-                u = x_pt - center_pt
-                v = n_vec
-                v_norm = n_norm
-                x_vec = u - (np.dot(u, v)/v_norm**2)*v
-
-                # Compute second orthogonal vector - take cross product
-                y_vec = np.cross(n_vec, x_vec)
-
-                # Normalize vectors
-                x_vec = x_vec / np.linalg.norm(x_vec)
-                y_vec = y_vec / np.linalg.norm(y_vec)
-                n_vec = n_vec / np.linalg.norm(n_vec)
-
-                # TODO: Optimize this
-                x_vec1 = list(x_vec) + [0]
-                y_vec1 = list(y_vec) + [0]
-                n_vec1 = list(n_vec) + [0]
-
-                R_t = np.array([x_vec1,y_vec1,n_vec1,[0,0,0,1]])
-
-                quat = quaternion_from_matrix(R_t.transpose()) # [q_x, q_y, q_z, q_w]
-
-                # Normalize quaternion
-                quat = quat / np.linalg.norm(quat)
+                # Override pose with detection based on camera if necessary
+                cam_center_pt, cam_quat = self.extractPoseFromMsg(tag_idx, self.tag_data.posearray.poses)
+                if not self.rgbd_pos_flag:
+                    center_pt = cam_center_pt 
+                if not self.rgbd_rot_flag:
+                    quat = cam_quat
 
                 # Update tf tree
                 output_tf = self.composeTfMsg(center_pt, quat, header, tag_id)
@@ -220,6 +204,47 @@ class ApriltagsRgbdNode():
             self.marker_arr_pub.publish(marker_array_msg)
 
             self.rate.sleep()
+
+    def computePoseFromDepth(self, depth_points, n_vec):
+        # Compute center of plane
+        center_pt = np.mean(depth_points, axis=0)
+
+        # Compute magnitude of normal
+        n_norm = np.linalg.norm(n_vec)
+
+        # Compute point in direction of x-axis
+        x_pt = (depth_points[1] + depth_points[2]) / 2
+
+        # Compute first orthogonal vector - project point onto plane
+        u = x_pt - center_pt
+        v = n_vec
+        v_norm = n_norm
+        x_vec = u - (np.dot(u, v)/v_norm**2)*v
+
+        # Compute second orthogonal vector - take cross product
+        y_vec = np.cross(n_vec, x_vec)
+
+        # Normalize vectors
+        x_vec = x_vec / np.linalg.norm(x_vec)
+        y_vec = y_vec / np.linalg.norm(y_vec)
+        n_vec = n_vec / np.linalg.norm(n_vec)
+
+        # TODO: Optimize this
+        x_vec1 = list(x_vec) + [0]
+        y_vec1 = list(y_vec) + [0]
+        n_vec1 = list(n_vec) + [0]
+
+        R_t = np.array([x_vec1,y_vec1,n_vec1,[0,0,0,1]])
+
+        quat = quaternion_from_matrix(R_t.transpose()) # [q_x, q_y, q_z, q_w]
+
+        # Normalize quaternion
+        quat = quat / np.linalg.norm(quat)
+        return center_pt, quat
+
+    def extractPoseFromMsg(self, idx, poses):
+        center_pt, quat = tf_utils.pose_to_pq(poses[idx])
+        return center_pt, quat
 
     def parseTag(self, tag):
         id = str(tag.id)
