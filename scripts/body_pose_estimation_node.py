@@ -47,6 +47,7 @@ class BodyPoseEstimationNode():
 
         self.num_tags = len(self.cfg['tags'])
         self.state = self.initState(self.num_tags)
+        self.broadcastGroundTruthTfs()
 
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
 
@@ -64,12 +65,31 @@ class BodyPoseEstimationNode():
         self.prev_ts = np.zeros(len(self.bodies))
         self.tag_corner_info = None
 
+    def broadcastGroundTruthTfs(self):
+        broadcaster = tf2_ros.StaticTransformBroadcaster()
+        static_tfs = []
+        for i, tag in enumerate(self.cfg['tags']):
+            if self.cfg['bodies'][i] == "base":
+                se3 = self.cfg["tf_body2tag"][i]
+                
+                tf_msg = TransformStamped()
+                tf_msg.header.stamp = rospy.Time.now()
+                tf_msg.header.frame_id = "Base"
+                tf_msg.child_frame_id = "ground_truth_" + str(tag)
+
+                tf_msg.transform = tf_utils.se3_to_msg(se3)
+                static_tfs.append(tf_msg)
+
+        broadcaster.sendTransform(static_tfs)
+
+
     def parseConfig(self, cfg):
         formatted_cfg = {
             "tags": [],
             "sizes": [],
             "bodies": [],
             "tf_tag2body": [],
+            "tf_body2tag": [],
             "corner_pts": [], # In body frame
         }
         for body in cfg['bodies']:
@@ -98,6 +118,7 @@ class BodyPoseEstimationNode():
 
                 # Compute transformation between tag to body
                 X_b_t = tr.compose_matrix(angles=a_b_t, translate=p_b_t)
+                formatted_cfg["tf_body2tag"].append(X_b_t)
                 X_t_b = tr.inverse_matrix(X_b_t)
                 formatted_cfg["tf_tag2body"].append(X_t_b)
 
