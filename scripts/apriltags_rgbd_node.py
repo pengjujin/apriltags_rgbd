@@ -14,6 +14,8 @@ import numpy as np
 import cv2
 import rgb_depth_fuse as fuse
 import math
+from threading import Thread, Lock
+mutex = Lock()
 
 # Custom Imports
 import tf_utils
@@ -86,124 +88,125 @@ class ApriltagsRgbdNode():
         self.marker_arr_pub = rospy.Publisher("/apriltags_rgbd/visualization_marker_array", MarkerArray, queue_size=10)
 
     def tagCallback(self, camera_info_data, rgb_data, depth_data, tag_data):
-        self.camera_info_data = camera_info_data
-        self.rgb_data = rgb_data
-        self.depth_data = depth_data
-        self.tag_data = tag_data
-        self.new_data = True
+        with mutex:
+            self.camera_info_data = camera_info_data
+            self.rgb_data = rgb_data
+            self.depth_data = depth_data
+            self.tag_data = tag_data
+            self.new_data = True
         # TODO: check timestamps here
 
-    def run(self):
-        while not rospy.is_shutdown():
-            # Check for new data
-            if not self.new_data:
-                self.rate.sleep()
-                continue
+    def loop(self):
 
-            self.new_data = False
+        # Check for new data
+        if not self.new_data:
+            self.rate.sleep()
+            return
 
-            # Convert ROS images to OpenCV frames
+        self.new_data = False
+
+        # Convert ROS images to OpenCV frames
+        try:
+            rgb_image = self.bridge.imgmsg_to_cv2(self.rgb_data, "bgr8")
+            depth_image = self.bridge.imgmsg_to_cv2(self.depth_data, "16UC1")
+        except CvBridgeError as e:
+            print(e)
+            return
+
+        # Extract metadata
+        header = self.camera_info_data.header
+        self.k_mtx = np.array(self.camera_info_data.K).reshape(3,3)
+
+        # Create messages for point info
+        tag_pts = PointCloud()
+        corner_pts = PointCloud()
+        marker_array_msg = MarkerArray()
+        corner_pts_labeled_array = LabeledPointArray()
+
+        tag_pts.header = header
+        corner_pts.header = header
+        corner_pts_labeled_array.header = header
+
+        # Estimate pose of each tag
+        for tag_idx, tag in enumerate(self.tag_data.apriltags):
+            tag_id, image_pts = self.parseTag(tag)
+
+            # TODO: figure out why this errors out when camera is blocked
+            # for some time
             try:
-                rgb_image = self.bridge.imgmsg_to_cv2(self.rgb_data, "bgr8")
-                depth_image = self.bridge.imgmsg_to_cv2(self.depth_data, "16UC1")
-            except CvBridgeError as e:
-                print(e)
+                # Fit plane and compute corner positions
+                depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
+                depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
+            except:
+                rospy.logwarn("Error in plane fitting - skipping tag " + str(tag_id))
                 continue
 
-            # Extract metadata
-            header = self.camera_info_data.header
-            self.k_mtx = np.array(self.camera_info_data.K).reshape(3,3)
+            # Plane Normal Vector
+            n_vec = -depth_plane_est.mean.n # Negative because plane points
+                                            # in opposite direction
 
-            # Create messages for point info
-            tag_pts = PointCloud()
-            corner_pts = PointCloud()
-            marker_array_msg = MarkerArray()
-            corner_pts_labeled_array = LabeledPointArray()
+            if ENABLE_FILTER:
+                # Filter points
+                depth_points, n_vec = self.filter.updateEstimate(tag_id, depth_points, n_vec)
 
-            tag_pts.header = header
-            corner_pts.header = header
-            corner_pts_labeled_array.header = header
-
-            # Estimate pose of each tag
-            for tag_idx, tag in enumerate(self.tag_data.apriltags):
-                tag_id, image_pts = self.parseTag(tag)
-
-                # TODO: figure out why this errors out when camera is blocked
-                # for some time
-                try:
-                    # Fit plane and compute corner positions
-                    depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
-                    depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
-                except:
-                    rospy.logwarn("Error in plane fitting - skipping tag " + str(tag_id))
+                # Check results from filter
+                if depth_points == None or np.isnan(np.sum(n_vec)):
                     continue
 
-                # Plane Normal Vector
-                n_vec = -depth_plane_est.mean.n # Negative because plane points
-                                                # in opposite direction
+            # Compute pose
+            center_pt, quat = self.computePoseFromDepth(depth_points, n_vec)
 
-                if ENABLE_FILTER:
-                    # Filter points
-                    depth_points, n_vec = self.filter.updateEstimate(tag_id, depth_points, n_vec)
+            # Override pose with detection based on camera if necessary
+            cam_center_pt, cam_quat = self.extractPoseFromMsg(tag_idx, self.tag_data.posearray.poses)
+            if not self.rgbd_pos_flag:
+                center_pt = cam_center_pt 
+            if not self.rgbd_rot_flag:
+                quat = cam_quat
 
-                    # Check results from filter
-                    if depth_points == None or np.isnan(np.sum(n_vec)):
-                        continue
+            # Update tf tree
+            output_tf = self.composeTfMsg(center_pt, quat, header, tag_id)
+            self.tf_broadcaster.sendTransform(output_tf)
+            self.tag_tf_pub.publish(output_tf)
 
-                # Compute pose
-                center_pt, quat = self.computePoseFromDepth(depth_points, n_vec)
+            # Save tag and corner points
+            corner_pts_tag = PointArray()
 
-                # Override pose with detection based on camera if necessary
-                cam_center_pt, cam_quat = self.extractPoseFromMsg(tag_idx, self.tag_data.posearray.poses)
-                if not self.rgbd_pos_flag:
-                    center_pt = cam_center_pt 
-                if not self.rgbd_rot_flag:
-                    quat = cam_quat
+            for i in range(len(all_pts)):
+                tag_pts.points.append(Point32(*all_pts[i]))
 
-                # Update tf tree
-                output_tf = self.composeTfMsg(center_pt, quat, header, tag_id)
-                self.tf_broadcaster.sendTransform(output_tf)
-                self.tag_tf_pub.publish(output_tf)
+            for i in range(len(depth_points)):
+                corner_pts.points.append(Point32(*depth_points[i]))
+                corner_pts_tag.points.append(Point32(*depth_points[i]))
 
-                # Save tag and corner points
-                corner_pts_tag = PointArray()
+            corner_pts_labeled_array.labels.append(str(tag_id))
+            corner_pts_labeled_array.point_arrays.append(corner_pts_tag)
 
-                for i in range(len(all_pts)):
-                    tag_pts.points.append(Point32(*all_pts[i]))
+            # Create visualization markers
+            marker = Marker()
+            marker.header = header
+            marker.id = int(tag_id)
+            marker.type = 0
+            marker.pose.position = Point32(0,0,0)
+            marker.pose.orientation = Quaternion(0,0,0,1)
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            marker.color.a = 1.0
+            marker.scale.x = 0.005
+            marker.scale.y = 0.01
+            marker.scale.z = 0.0
+            pt1 = Point32(*center_pt)
+            pt2 = Point32(*(center_pt + n_vec/5))
+            marker.points = [pt1, pt2]
+            marker_array_msg.markers.append(marker)
 
-                for i in range(len(depth_points)):
-                    corner_pts.points.append(Point32(*depth_points[i]))
-                    corner_pts_tag.points.append(Point32(*depth_points[i]))
+        # Publish data
+        self.tag_pt_pub.publish(tag_pts)
+        self.corner_pt_pub.publish(corner_pts)
+        self.corner_pt_labeled_pub.publish(corner_pts_labeled_array)
+        self.marker_arr_pub.publish(marker_array_msg)
 
-                corner_pts_labeled_array.labels.append(str(tag_id))
-                corner_pts_labeled_array.point_arrays.append(corner_pts_tag)
-
-                # Create visualization markers
-                marker = Marker()
-                marker.header = header
-                marker.id = int(tag_id)
-                marker.type = 0
-                marker.pose.position = Point32(0,0,0)
-                marker.pose.orientation = Quaternion(0,0,0,1)
-                marker.color.r = 1.0
-                marker.color.g = 0.0
-                marker.color.b = 0.0
-                marker.color.a = 1.0
-                marker.scale.x = 0.005
-                marker.scale.y = 0.01
-                marker.scale.z = 0.0
-                pt1 = Point32(*center_pt)
-                pt2 = Point32(*(center_pt + n_vec/5))
-                marker.points = [pt1, pt2]
-                marker_array_msg.markers.append(marker)
-
-            # Publish data
-            self.tag_pt_pub.publish(tag_pts)
-            self.corner_pt_pub.publish(corner_pts)
-            self.corner_pt_labeled_pub.publish(corner_pts_labeled_array)
-            self.marker_arr_pub.publish(marker_array_msg)
-
-            self.rate.sleep()
+        self.rate.sleep()
 
     def computePoseFromDepth(self, depth_points, n_vec):
         # Compute center of plane
@@ -276,4 +279,7 @@ class ApriltagsRgbdNode():
 
 if __name__ == '__main__':
     node = ApriltagsRgbdNode()
-    node.run()
+
+    while not rospy.is_shutdown():
+        with mutex:
+            node.loop()

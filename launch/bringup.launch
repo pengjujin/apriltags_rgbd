@@ -2,7 +2,7 @@
   <!-- Parameters to determine whether apriltag pose estimate 
   is computed using camera info or depth data -->
   <arg name="use_rgbd_position" default="true" />
-  <arg name="use_rgbd_rotation" default="false" />
+  <arg name="use_rgbd_rotation" default="true" />
 
   <!-- Apriltag detection node -->
   <arg name="camera_name" default="/kinect2/hd/" />

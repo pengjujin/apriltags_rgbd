@@ -34,6 +34,7 @@ import tf_utils
 import icp
 
 TF_TIMEOUT = 2 # Maximum age of tfs to use in estimate (in seconds)
+ENABLE_ICP = False # Whether or not to use ICP, or to just use one tag to estimate pose
 
 class BodyPoseEstimationNode():
     def __init__(self):
@@ -355,12 +356,16 @@ class BodyPoseEstimationNode():
                     rospy.logwarn("No usable corner detections")
                     continue
 
-                # Run ICP to compute transform from camera to body
-                # Using extractDetectedPoints and extractTagPoints ensure
-                # we already have correspondences
-                X_c_b, distances, iterations = icp.icp(body_pts, detected_pts,
-                    init_pose=initial_pose, max_iterations=100,
-                    tolerance=0.000000001, compute_correspondences=False)
+                if ENABLE_ICP:
+                    # Run ICP to compute transform from camera to body
+                    # Using extractDetectedPoints and extractTagPoints ensure
+                    # we already have correspondences
+                    X_c_b, distances, iterations = icp.icp(body_pts, detected_pts,
+                        init_pose=initial_pose, max_iterations=100,
+                        tolerance=0.000000001, compute_correspondences=False)
+                else:
+                    # Use first detected tag for body pose
+                    X_c_b = initial_pose
 
                 # Publish to ROS
                 tf_msg = self.constructOutputMsg(body, X_c_b)

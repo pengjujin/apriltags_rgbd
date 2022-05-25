@@ -104,6 +104,49 @@ bodies:
            y: 0.001
            z: 0.001
 
+# Gripper 
+ - gripper:
+     tags:
+    #  - id: 135
+    #    size: 0.0415
+    #    pose:
+    #      position:
+    #        x: 0.03875
+    #        y: 0
+    #        z: 0.0335
+    #      rotation:
+    #        x: 0
+    #        y: 0
+    #        z: 3.14
+    #      position_noise:
+    #        x: 0.001
+    #        y: 0.001
+    #        z: 0.001
+    #      rotation_noise:
+    #        x: 0.001
+    #        y: 0.001
+    #        z: 0.001
+     - id: 580
+       size: 0.044
+       pose:
+         position:
+           x: 0.04755
+           y: 0
+           z: 0.0335
+         rotation:
+           x: 0
+           y: 0
+           z: 3.14
+         position_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
+         rotation_noise:
+           x: 0.001
+           y: 0.001
+           z: 0.001
+
+          #  0.044
 
 #
 # # Big Pushcore
