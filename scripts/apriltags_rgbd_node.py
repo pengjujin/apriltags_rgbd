@@ -26,7 +26,7 @@ import tf2_ros
 from geometry_msgs.msg import TransformStamped, Vector3, Quaternion, Pose, Point32
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Image, CameraInfo, PointCloud
-from apriltag_msgs.msg import ApriltagPoseStamped
+from apriltag_ros.msg import AprilTagDetectionArray
 from message_filters import TimeSynchronizer, Subscriber, ApproximateTimeSynchronizer
 from cv_bridge import CvBridge, CvBridgeError
 import tf_conversions
@@ -60,16 +60,8 @@ class ApriltagsRgbdNode():
             Subscriber("/kinect2/hd/camera_info", CameraInfo),
             Subscriber("/kinect2/hd/image_color_rect", Image),
             Subscriber("/kinect2/hd/image_depth_rect", Image),
-            Subscriber("/apriltag_pose_estimator/apriltag_poses", ApriltagPoseStamped)], 1 ,0.5)
+            Subscriber("/tag_detections", AprilTagDetectionArray)], 1 ,0.5)
         tss.registerCallback(self.tagCallback)
-
-        self.camera_info_data = None
-        self.rgb_data = None
-        self.depth_data = None
-        self.tag_data = None
-        self.k_mtx = None
-
-        self.new_data = False
 
         # ROS tf
         self.tf_buffer = tf2_ros.Buffer()
@@ -89,123 +81,162 @@ class ApriltagsRgbdNode():
 
     def tagCallback(self, camera_info_data, rgb_data, depth_data, tag_data):
         with mutex:
-            self.camera_info_data = camera_info_data
-            self.rgb_data = rgb_data
-            self.depth_data = depth_data
-            self.tag_data = tag_data
-            self.new_data = True
-        # TODO: check timestamps here
+            camera_info_data = camera_info_data
+            rgb_data = rgb_data
+            depth_data = depth_data
+            tag_data = tag_data
+
+            # TODO: check timestamps here
+
+            # Convert ROS images to OpenCV frames
+            try:
+                rgb_image = self.bridge.imgmsg_to_cv2(rgb_data, "bgr8")
+                depth_image = self.bridge.imgmsg_to_cv2(depth_data, "16UC1")
+            except CvBridgeError as e:
+                print(e)
+                return
+
+            # Extract metadata
+            header = camera_info_data.header
+            k_mtx = np.array(camera_info_data.K).reshape(3,3)
+
+            # Create messages for point info
+            tag_pts = PointCloud()
+            corner_pts = PointCloud()
+            marker_array_msg = MarkerArray()
+            corner_pts_labeled_array = LabeledPointArray()
+
+            tag_pts.header = header
+            corner_pts.header = header
+            corner_pts_labeled_array.header = header
+
+            # Estimate pose of each tag
+            for tag_idx, tag in enumerate(tag_data.detections):
+                tag_id, image_pts = self.parseTag(tag)
+
+                depth_pts = self.extractDepthPoints(depth_image, image_pts, k_mtx)
+
+                # try:
+                #     # Fit plane and compute corner positions
+                #     depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, k_mtx)
+                #     depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, k_mtx)
+                # except:
+                #     rospy.logwarn("Error in plane fitting - skipping tag " + str(tag_id))
+                #     continue
+
+                # print(len(all_pts))
+                # # Plane Normal Vector
+                # n_vec = -depth_plane_est.mean.n # Negative because plane points
+                #                                 # in opposite direction
+
+                # # TODO: left off here - this filter results in really clean detections, but is too aggressive
+                # if ENABLE_FILTER:
+                #     # Filter points
+                #     depth_points, n_vec = self.filter.updateEstimate(tag_id, depth_points, n_vec)
+
+                #     # Check results from filter
+                #     if depth_points == None:
+                #         rospy.loginfo("invalid depth points")
+                #         continue
+                    
+                #     if np.isnan(np.sum(n_vec)):
+                #         rospy.loginfo("malformed normal vector")
+                #         continue
+
+                # Compute pose
+                # center_pt, quat = self.computePoseFromDepth(depth_points, n_vec)
+
+
+                # TODO: figure out why this piece of code causes jumpy pose estimates
+                # # Override pose with detection based on camera if necessary
+                # cam_center_pt, cam_quat = self.extractPoseFromMsg(tag)
+                # if not self.rgbd_pos_flag:
+                #     center_pt = cam_center_pt 
+                # if not self.rgbd_rot_flag:
+                #     quat = cam_quat
+
+                # Update tf tree
+                output_tf = TransformStamped()
+                output_tf.header = header
+                output_tf.child_frame_id = TAG_PREFIX + str(tag_id)
+
+                # Estimate tag position based on average depth measurement
+                output_tf.transform.translation = Vector3(*np.mean(depth_pts, axis=0))
+
+                # Estimate tag orientation based on apriltag detection and camera intrinsics 
+                output_tf.transform.rotation = tag.pose.pose.pose.orientation
+
+                self.tf_broadcaster.sendTransform(output_tf)
+                self.tag_tf_pub.publish(output_tf)
+
+                # # Save tag and corner points
+                # corner_pts_tag = PointArray()
+
+                # for i in range(len(all_pts)):
+                #     tag_pts.points.append(Point32(*all_pts[i]))
+
+                # for i in range(len(depth_points)):
+                #     corner_pts.points.append(Point32(*depth_points[i]))
+                #     corner_pts_tag.points.append(Point32(*depth_points[i]))
+
+                # corner_pts_labeled_array.labels.append(str(tag_id))
+                # corner_pts_labeled_array.point_arrays.append(corner_pts_tag)
+
+                # # Create visualization markers
+                # marker = Marker()
+                # marker.header = header
+                # marker.id = int(tag_id)
+                # marker.type = 0
+                # marker.pose.position = Point32(0,0,0)
+                # marker.pose.orientation = Quaternion(0,0,0,1)
+                # marker.color.r = 1.0
+                # marker.color.g = 0.0
+                # marker.color.b = 0.0
+                # marker.color.a = 1.0
+                # marker.scale.x = 0.005
+                # marker.scale.y = 0.01
+                # marker.scale.z = 0.0
+                # pt1 = Point32(*center_pt)
+                # pt2 = Point32(*(center_pt + n_vec/5))
+                # marker.points = [pt1, pt2]
+                # marker_array_msg.markers.append(marker)
+
+            # Publish data
+            # self.tag_pt_pub.publish(tag_pts)
+            # self.corner_pt_pub.publish(corner_pts)
+            # self.corner_pt_labeled_pub.publish(corner_pts_labeled_array)
+            # self.marker_arr_pub.publish(marker_array_msg)
+
+            self.rate.sleep()
+
+    def extractDepthPoints(self, depth_image, image_pts, K):
+        ## Generate the depth samples from the depth image
+        fx = K[0][0]
+        fy = K[1][1]
+        px = K[0][2]
+        py = K[1][2]
+        rows, cols = depth_image.shape
+        hull_pts = image_pts.reshape(4,1,2).astype(int)
+        rect = cv2.convexHull(hull_pts)
+        all_pts = []
+        xcoord = image_pts[:, 0]
+        ycoord = image_pts[: ,1]
+        xmin = int(np.amin(xcoord))
+        xmax = int(np.amax(xcoord))
+        ymin = int(np.amin(ycoord))
+        ymax = int(np.amax(ycoord))
+        for j in range(ymin, ymax):
+            for i in range(xmin, xmax):
+                if (cv2.pointPolygonTest(rect, (i,j), False) > 0):
+                    depth = depth_image[j,i] / 1000.0
+                    if(depth != 0):
+                        x = (i - px) * depth / fx
+                        y = (j - py) * depth / fy
+                        all_pts.append([x,y,depth])
+        samples_depth = np.array(all_pts)
+        return samples_depth
 
     def loop(self):
-
-        # Check for new data
-        if not self.new_data:
-            self.rate.sleep()
-            return
-
-        self.new_data = False
-
-        # Convert ROS images to OpenCV frames
-        try:
-            rgb_image = self.bridge.imgmsg_to_cv2(self.rgb_data, "bgr8")
-            depth_image = self.bridge.imgmsg_to_cv2(self.depth_data, "16UC1")
-        except CvBridgeError as e:
-            print(e)
-            return
-
-        # Extract metadata
-        header = self.camera_info_data.header
-        self.k_mtx = np.array(self.camera_info_data.K).reshape(3,3)
-
-        # Create messages for point info
-        tag_pts = PointCloud()
-        corner_pts = PointCloud()
-        marker_array_msg = MarkerArray()
-        corner_pts_labeled_array = LabeledPointArray()
-
-        tag_pts.header = header
-        corner_pts.header = header
-        corner_pts_labeled_array.header = header
-
-        # Estimate pose of each tag
-        for tag_idx, tag in enumerate(self.tag_data.apriltags):
-            tag_id, image_pts = self.parseTag(tag)
-
-            # TODO: figure out why this errors out when camera is blocked
-            # for some time
-            try:
-                # Fit plane and compute corner positions
-                depth_plane_est, all_pts = fuse.sample_depth_plane(depth_image, image_pts, self.k_mtx)
-                depth_points = fuse.getDepthPoints(image_pts, depth_plane_est, depth_image, self.k_mtx)
-            except:
-                rospy.logwarn("Error in plane fitting - skipping tag " + str(tag_id))
-                continue
-
-            # Plane Normal Vector
-            n_vec = -depth_plane_est.mean.n # Negative because plane points
-                                            # in opposite direction
-
-            if ENABLE_FILTER:
-                # Filter points
-                depth_points, n_vec = self.filter.updateEstimate(tag_id, depth_points, n_vec)
-
-                # Check results from filter
-                if depth_points == None or np.isnan(np.sum(n_vec)):
-                    continue
-
-            # Compute pose
-            center_pt, quat = self.computePoseFromDepth(depth_points, n_vec)
-
-            # Override pose with detection based on camera if necessary
-            cam_center_pt, cam_quat = self.extractPoseFromMsg(tag_idx, self.tag_data.posearray.poses)
-            if not self.rgbd_pos_flag:
-                center_pt = cam_center_pt 
-            if not self.rgbd_rot_flag:
-                quat = cam_quat
-
-            # Update tf tree
-            output_tf = self.composeTfMsg(center_pt, quat, header, tag_id)
-            self.tf_broadcaster.sendTransform(output_tf)
-            self.tag_tf_pub.publish(output_tf)
-
-            # Save tag and corner points
-            corner_pts_tag = PointArray()
-
-            for i in range(len(all_pts)):
-                tag_pts.points.append(Point32(*all_pts[i]))
-
-            for i in range(len(depth_points)):
-                corner_pts.points.append(Point32(*depth_points[i]))
-                corner_pts_tag.points.append(Point32(*depth_points[i]))
-
-            corner_pts_labeled_array.labels.append(str(tag_id))
-            corner_pts_labeled_array.point_arrays.append(corner_pts_tag)
-
-            # Create visualization markers
-            marker = Marker()
-            marker.header = header
-            marker.id = int(tag_id)
-            marker.type = 0
-            marker.pose.position = Point32(0,0,0)
-            marker.pose.orientation = Quaternion(0,0,0,1)
-            marker.color.r = 1.0
-            marker.color.g = 0.0
-            marker.color.b = 0.0
-            marker.color.a = 1.0
-            marker.scale.x = 0.005
-            marker.scale.y = 0.01
-            marker.scale.z = 0.0
-            pt1 = Point32(*center_pt)
-            pt2 = Point32(*(center_pt + n_vec/5))
-            marker.points = [pt1, pt2]
-            marker_array_msg.markers.append(marker)
-
-        # Publish data
-        self.tag_pt_pub.publish(tag_pts)
-        self.corner_pt_pub.publish(corner_pts)
-        self.corner_pt_labeled_pub.publish(corner_pts_labeled_array)
-        self.marker_arr_pub.publish(marker_array_msg)
-
         self.rate.sleep()
 
     def computePoseFromDepth(self, depth_points, n_vec):
@@ -245,37 +276,38 @@ class ApriltagsRgbdNode():
         quat = quat / np.linalg.norm(quat)
         return center_pt, quat
 
-    def extractPoseFromMsg(self, idx, poses):
-        center_pt, quat = tf_utils.pose_to_pq(poses[idx])
+    def extractPoseFromMsg(self, detection):           
+        pose = detection.pose.pose.pose
+        center_pt, quat = tf_utils.pose_to_pq(pose)
         return center_pt, quat
 
     def parseTag(self, tag):
-        id = str(tag.id)
+        id = str(tag.id[0])
 
-        im_pt0 = [tag.corners[0].x, tag.corners[0].y]
-        im_pt1 = [tag.corners[1].x, tag.corners[1].y]
-        im_pt2 = [tag.corners[2].x, tag.corners[2].y]
-        im_pt3 = [tag.corners[3].x, tag.corners[3].y]
+        im_pt0 = tag.pix_tl
+        im_pt1 = tag.pix_tr
+        im_pt2 = tag.pix_br
+        im_pt3 = tag.pix_bl
 
         im_pts = im_pt0 + im_pt1 + im_pt2 + im_pt3
         image_pts = np.array(im_pts).reshape(4,2)
 
         return id, image_pts
 
-    def composeTfMsg(self, trans, q, header, tag_id):
-        output_tf = TransformStamped()
+    # def composeTfMsg(self, trans, q, header, tag_id):
+    #     output_tf = TransformStamped()
 
-        # Update header info
-        output_tf.header = header
-        output_tf.child_frame_id = TAG_PREFIX + str(tag_id)
+    #     # Update header info
+    #     output_tf.header = header
+    #     output_tf.child_frame_id = TAG_PREFIX + str(tag_id)
 
-        # Populate translation info
-        output_tf.transform.translation = Vector3(*trans)
+    #     # Populate translation info
+    #     output_tf.transform.translation = Vector3(*trans)
 
-        # Populate rotation info
-        output_tf.transform.rotation = Quaternion(*q)
+    #     # Populate rotation info
+    #     output_tf.transform.rotation = Quaternion(*q)
 
-        return output_tf
+    #     return output_tf
 
 if __name__ == '__main__':
     node = ApriltagsRgbdNode()
