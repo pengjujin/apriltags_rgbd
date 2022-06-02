@@ -44,12 +44,12 @@
   </node>
 
   <!-- Body pose estimation -->
-  <!-- <arg name="config_file"
+  <arg name="config_file"
     default="$(find apriltags_rgbd)/config/testbed_kinect.yaml"/>
 
   <node pkg="apriltags_rgbd" type="body_pose_estimation_node.py"
     name="body_pose_estimation_node" output="screen">
     <rosparam param="apriltags_rbgd_config" command="load"
       file="$(arg config_file)"/>
-  </node> -->
+  </node>
 </launch>

@@ -34,7 +34,7 @@ import tf_utils
 import icp
 
 TF_TIMEOUT = 2 # Maximum age of tfs to use in estimate (in seconds)
-ENABLE_ICP = False # Whether or not to use ICP, or to just use one tag to estimate pose
+# ENABLE_ICP = False # Whether or not to use ICP, or to just use one tag to estimate pose
 
 class BodyPoseEstimationNode():
     def __init__(self):
@@ -54,7 +54,7 @@ class BodyPoseEstimationNode():
 
         # Subscribers
         self.tag_sub = rospy.Subscriber("/apriltags_rgbd/tag_tfs", TransformStamped, self.tagCallback)
-        self.corner_sub = rospy.Subscriber("/apriltags_rgbd/corner_tag_pts_labeled", LabeledPointArray, self.cornerCallback)
+        # self.corner_sub = rospy.Subscriber("/apriltags_rgbd/corner_tag_pts_labeled", LabeledPointArray, self.cornerCallback)
 
         # Publishers (visualization only)
         self.body_pts_pub =  rospy.Publisher("/apriltags_rgbd/icp_body_pts", PointCloud, queue_size=10)
@@ -64,7 +64,7 @@ class BodyPoseEstimationNode():
         self.frame_id = ""
         self.bodies = list(set(self.cfg['bodies']))
         self.prev_ts = np.zeros(len(self.bodies))
-        self.tag_corner_info = None
+        # self.tag_corner_info = None
 
     def broadcastGroundTruthTfs(self):
         broadcaster = tf2_ros.StaticTransformBroadcaster()
@@ -210,7 +210,7 @@ class BodyPoseEstimationNode():
 
         # Save transform
         if tf_data.child_frame_id not in self.cfg['tags']:
-            rospy.loginfo("Unused tf " + tf_data.child_frame_id)
+            # rospy.loginfo("Unused tf " + tf_data.child_frame_id)
             return
 
         idx = np.where(self.cfg['tags'] == tf_data.child_frame_id)[0][0]
@@ -220,9 +220,9 @@ class BodyPoseEstimationNode():
         # TODO: make this more robust
         self.frame_id = tf_data.header.frame_id
 
-    def cornerCallback(self, corner_data):
-        # Save corner data
-        self.tag_corner_info = corner_data
+    # def cornerCallback(self, corner_data):
+    #     # Save corner data
+    #     self.tag_corner_info = corner_data
 
     def computeInitialPose(self, body, time_mask):
         """Compute initial pose to use for ICP - use body pose estimate
@@ -248,65 +248,65 @@ class BodyPoseEstimationNode():
 
         return X_c_b
 
-    def extractTagPoints(self, tags):
-        """Extract tag corner points in body frame. Assumes all tags in
-        list are from same body, and that cfg variable has corner positions
-        pre-computed
+    # def extractTagPoints(self, tags):
+    #     """Extract tag corner points in body frame. Assumes all tags in
+    #     list are from same body, and that cfg variable has corner positions
+    #     pre-computed
 
-        @param tags: list of tags to extract points for
-        @return tag_pts: points of corners for all apriltags in original list
-        relative to body based on config, as a numpy array
-        """
-        # Initialize corner array
-        tag_pts = []
+    #     @param tags: list of tags to extract points for
+    #     @return tag_pts: points of corners for all apriltags in original list
+    #     relative to body based on config, as a numpy array
+    #     """
+    #     # Initialize corner array
+    #     tag_pts = []
 
-        # Add corners from each tag
-        for tag_id in tags:
-            if tag_id not in self.cfg['tags']:
-                rospy.logwarn("No config info for tag " + tag_id)
-                continue
-            tag_idx = np.argwhere(self.cfg['tags'] == tag_id)[0][0]
+    #     # Add corners from each tag
+    #     for tag_id in tags:
+    #         if tag_id not in self.cfg['tags']:
+    #             rospy.logwarn("No config info for tag " + tag_id)
+    #             continue
+    #         tag_idx = np.argwhere(self.cfg['tags'] == tag_id)[0][0]
 
-            for corner in self.cfg['corner_pts'][tag_idx]:
-                tag_pts.append(corner)
+    #         for corner in self.cfg['corner_pts'][tag_idx]:
+    #             tag_pts.append(corner)
 
-        # Return as np array
-        return np.array(tag_pts)
+    #     # Return as np array
+    #     return np.array(tag_pts)
 
-    def extractDetectedPoints(self, body, time_mask):
-        # Initialize corner points array for body
-        detected_pts = []
+    # def extractDetectedPoints(self, body, time_mask):
+    #     # Initialize corner points array for body
+    #     detected_pts = []
 
-        # Initialize array of tag info
-        detected_tags = []
+    #     # Initialize array of tag info
+    #     detected_tags = []
 
-        # Create bool array for body
-        b_arr_body = [self.cfg['bodies'] == body]
+    #     # Create bool array for body
+    #     b_arr_body = [self.cfg['bodies'] == body]
 
-        # Get tags with valid timestamps for this body
-        b_arr = np.logical_and(time_mask, b_arr_body)[0]
-        idxs = np.where(b_arr)[0]
+    #     # Get tags with valid timestamps for this body
+    #     b_arr = np.logical_and(time_mask, b_arr_body)[0]
+    #     idxs = np.where(b_arr)[0]
 
-        # Get list of detected corner points
-        for idx in idxs:
-            tag_id = self.cfg['tags'][idx]
-            if tag_id not in self.tag_corner_info.labels:
-                rospy.logwarn("No corner info for tag " + tag_id)
-                continue
-            c_idx = self.tag_corner_info.labels.index(tag_id)
-            c_pts = self.tag_corner_info.point_arrays[c_idx].points
+    #     # Get list of detected corner points
+    #     for idx in idxs:
+    #         tag_id = self.cfg['tags'][idx]
+    #         if tag_id not in self.tag_corner_info.labels:
+    #             rospy.logwarn("No corner info for tag " + tag_id)
+    #             continue
+    #         c_idx = self.tag_corner_info.labels.index(tag_id)
+    #         c_pts = self.tag_corner_info.point_arrays[c_idx].points
 
-            # Add points to array
-            for c in c_pts:
-                pt = tf_utils.point_to_p(c)
-                detected_pts.append(pt)
+    #         # Add points to array
+    #         for c in c_pts:
+    #             pt = tf_utils.point_to_p(c)
+    #             detected_pts.append(pt)
 
-            # Save tag info
-            detected_tags.append(tag_id)
+    #         # Save tag info
+    #         detected_tags.append(tag_id)
 
-        detected_pts = np.array(detected_pts)
-        detected_tags = np.array(detected_tags)
-        return detected_pts, detected_tags
+    #     detected_pts = np.array(detected_pts)
+    #     detected_tags = np.array(detected_tags)
+    #     return detected_pts, detected_tags
 
     def constructOutputMsg(self, body, se3):
         output_msg = TransformStamped()
@@ -332,8 +332,8 @@ class BodyPoseEstimationNode():
 
     def run(self):
         while not rospy.is_shutdown():
-            if self.tag_corner_info == None:
-                continue
+            # if self.tag_corner_info == None:
+            #     continue
             # Create bool array of valid timestamps
             b_arr_time = [rospy.Time.now().to_sec() - self.state['timestamps'] < TF_TIMEOUT]
 
@@ -348,24 +348,24 @@ class BodyPoseEstimationNode():
                     continue
 
                 initial_pose = self.computeInitialPose(body, b_arr_time)
-                detected_pts, detected_tags = self.extractDetectedPoints(body, b_arr_time)
-                body_pts = self.extractTagPoints(detected_tags)
+                # detected_pts, detected_tags = self.extractDetectedPoints(body, b_arr_time)
+                # body_pts = self.extractTagPoints(detected_tags)
 
-                # Ensure we have valid data
-                if len(detected_pts) == 0:
-                    rospy.logwarn("No usable corner detections")
-                    continue
+                # # Ensure we have valid data
+                # if len(detected_pts) == 0:
+                #     rospy.logwarn("No usable corner detections")
+                #     continue
 
-                if ENABLE_ICP:
-                    # Run ICP to compute transform from camera to body
-                    # Using extractDetectedPoints and extractTagPoints ensure
-                    # we already have correspondences
-                    X_c_b, distances, iterations = icp.icp(body_pts, detected_pts,
-                        init_pose=initial_pose, max_iterations=100,
-                        tolerance=0.000000001, compute_correspondences=False)
-                else:
-                    # Use first detected tag for body pose
-                    X_c_b = initial_pose
+                # if ENABLE_ICP:
+                #     # Run ICP to compute transform from camera to body
+                #     # Using extractDetectedPoints and extractTagPoints ensure
+                #     # we already have correspondences
+                #     X_c_b, distances, iterations = icp.icp(body_pts, detected_pts,
+                #         init_pose=initial_pose, max_iterations=100,
+                #         tolerance=0.000000001, compute_correspondences=False)
+                # else:
+                # Use first detected tag for body pose
+                X_c_b = initial_pose
 
                 # Publish to ROS
                 tf_msg = self.constructOutputMsg(body, X_c_b)
@@ -373,19 +373,19 @@ class BodyPoseEstimationNode():
 
 
                 # Publish body and detected points for visualization
-                body_pts_msg = PointCloud()
-                body_pts_msg.header = tf_msg.header
-                detected_pts_msg = PointCloud()
-                detected_pts_msg.header = tf_msg.header
+                # body_pts_msg = PointCloud()
+                # body_pts_msg.header = tf_msg.header
+                # detected_pts_msg = PointCloud()
+                # detected_pts_msg.header = tf_msg.header
 
-                for i in range(len(body_pts)):
-                    body_pts_msg.points.append(Point32(*body_pts[i]))
+                # for i in range(len(body_pts)):
+                #     body_pts_msg.points.append(Point32(*body_pts[i]))
 
-                for i in range(len(detected_pts)):
-                    detected_pts_msg.points.append(Point32(*detected_pts[i]))
+                # for i in range(len(detected_pts)):
+                #     detected_pts_msg.points.append(Point32(*detected_pts[i]))
 
-                self.body_pts_pub.publish(body_pts_msg)
-                self.detected_pts_pub.publish(detected_pts_msg)
+                # self.body_pts_pub.publish(body_pts_msg)
+                # self.detected_pts_pub.publish(detected_pts_msg)
 
             self.rate.sleep()
 
