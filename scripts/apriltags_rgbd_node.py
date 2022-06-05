@@ -161,6 +161,9 @@ class ApriltagsRgbdNode():
                 output_tf.child_frame_id = TAG_PREFIX + str(tag_id)
 
                 # Estimate tag position based on average depth measurement
+                if len(depth_pts) == 0:
+                    rospy.logwarn_throttle(2, "No depth info found for tag " + str(tag_id))
+                    continue
                 output_tf.transform.translation = Vector3(*np.mean(depth_pts, axis=0))
 
                 # Estimate tag orientation based on apriltag detection and camera intrinsics 
